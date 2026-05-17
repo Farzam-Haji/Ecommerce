@@ -1,0 +1,52 @@
+package main
+
+import (
+	"fmt"
+    "os"
+    "log"
+	"github.com/btalv/Ecommerce/server/internal/database"
+	"github.com/btalv/Ecommerce/server/internal/routes"
+    "github.com/btalv/Ecommerce/server/internal/handlers"
+    "github.com/btalv/Ecommerce/server/internal/repositories"
+	"github.com/gin-gonic/gin"
+    "github.com/joho/godotenv"
+)
+
+
+func main() {
+    // db initialazion
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatal(err)
+    }
+    config := database.Config{
+        User: os.Getenv("POSTGRES_USER"),
+        Password: os.Getenv("POSTGRES_PASSWORD"),
+        Host: os.Getenv("POSTGRES_HOST"),
+        Port: os.Getenv("POSTGRES_PORT"),
+        DBName: os.Getenv("POSTGRES_DBNAME"),
+    }
+
+    db, err := database.Open(config)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    err = db.Ping()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("Ping is received. db is connected.")
+    defer db.Close()
+
+    //constructor
+    postgresProductRepository := repositories.NewPostgresProductRepository(db)
+    // var repoInterface handlers.ProductHandler
+    repoInterface := postgresProductRepository
+    productHandler := handlers.NewProductHandler(repoInterface)
+
+    // gin initilaztion
+    engine := gin.Default()
+    routes.RegisterRoutes(engine, productHandler)
+    engine.Run() // 0.0.0.0:8080
+}
