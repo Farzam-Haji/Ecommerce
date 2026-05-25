@@ -8,6 +8,7 @@ import (
 	"github.com/btalv/Ecommerce/server/internal/routes"
     "github.com/btalv/Ecommerce/server/internal/handlers"
     "github.com/btalv/Ecommerce/server/internal/repositories"
+    "github.com/btalv/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
     "github.com/joho/godotenv"
 )
@@ -41,9 +42,8 @@ func main() {
 
     //constructor
     postgresProductRepository := repositories.NewPostgresProductRepository(db)
-    // var repoInterface handlers.ProductHandler
-    repoInterface := postgresProductRepository
-    productHandler := handlers.NewProductHandler(repoInterface)
+    productService := services.NewProductService(postgresProductRepository)
+    productHandler := handlers.NewProductHandler(productService)
 
     // gin initilaztion
     engine := gin.Default()
