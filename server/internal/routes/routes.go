@@ -14,5 +14,6 @@ func RegisterRoutes(r *gin.Engine, handler *handlers.ProductHandler) {
 	v1.POST("/products", handler.AddProduct)
 	v1.GET("/products/:id", handler.FetchProduct)
 	v1.PUT("/products/:id", handler.UpdateProduct)
+	v1.PATCH("/products/:id", handler.PatchProduct)
 	v1.DELETE("/products/:id", handler.DeleteProduct)
 }
