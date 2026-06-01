@@ -9,6 +9,7 @@ import (
     "github.com/btalv/Ecommerce/server/internal/handlers"
     "github.com/btalv/Ecommerce/server/internal/repositories"
     "github.com/btalv/Ecommerce/server/internal/services"
+    "github.com/btalv/Ecommerce/server/internal/middlewares"
 	"github.com/gin-gonic/gin"
     "github.com/joho/godotenv"
 )
@@ -46,7 +47,12 @@ func main() {
     productHandler := handlers.NewProductHandler(productService)
 
     // gin initilaztion
-    engine := gin.Default()
+    engine := gin.New()
+    engine.Use(middlewares.CustomLogger())
+    engine.Use(middlewares.RequestID())
+    engine.Use(gin.Logger())
+    engine.Use(gin.Recovery())
+    engine.Use(middlewares.ErrorHandler())
     routes.RegisterRoutes(engine, productHandler)
     engine.Run() // 0.0.0.0:8080
 }
