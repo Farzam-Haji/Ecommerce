@@ -43,20 +43,15 @@ func (h *ProductHandler) AddProduct(c *gin.Context) {
 	}
 
 	newID, err := h.Service.CreateProduct(newProduct)
-	switch {
-	case err == nil:
-		c.JSON(201, gin.H{
-			"status":"created",
-			"newProductID": newID,
-		})
-	case errors.Is(err, services.ErrInvalidName):
-		c.JSON(400, gin.H{"error":err.Error()})
-	case errors.Is(err, services.ErrInvalidQuantity):
-		c.JSON(400, gin.H{"error":err.Error()})
-	default:
-		log.Println(err)
-		c.JSON(500, gin.H{"error":services.ErrDatabase.Error()})
+	if err != nil {
+		_ = c.Error(err)
+		return
 	}
+	c.JSON(201, gin.H{
+		"status":"created",
+		"newProductID": newID,
+	})
+
 }
 
 func (h *ProductHandler) FetchProduct(c *gin.Context) {
