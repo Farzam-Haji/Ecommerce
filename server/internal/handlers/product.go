@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"errors"
+	"context"
 	"log"
 	"strconv"
 
@@ -11,50 +11,46 @@ import (
 )
 
 
-type ProductService interface {
-	CreateProduct(models.Product) (int, error)
-	GetProduct(int) (models.Product, error)
-	GetProducts() ([]models.Product, error)
-	UpdateProduct(models.Product) 	(error)
-	DeleteProduct(int)	(error)	
-	PatchProduct(int, *string, *int) (error)
+type ProductServiceAPI interface {
+	CreateProduct(context.Context, string, int) (*models.Product, error)
+	GetProduct(context.Context, int) (models.Product, error)
+	GetAllProducts(context.Context) ([]models.Product, error)
+	UpdateProduct(context.Context, int, string, int) 	(error)
+	PatchProduct(context.Context, int, *string, *int) (error)
+	DeleteProduct(context.Context, int)	(error)	
 }
 
 type ProductHandler struct {
-	Service 	ProductService
+	Service 	ProductServiceAPI
 }
 
-func NewProductHandler(serviceInterface ProductService) *ProductHandler {
+func NewProductHandler(serviceInterface ProductServiceAPI) *ProductHandler {
 	return &ProductHandler{
 		Service: serviceInterface,
 	}
 }
 
-func (h *ProductHandler) AddProduct(c *gin.Context) {
+func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	var request CreateProductRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		log.Println(err)
 		c.JSON(400, gin.H{"error": "couldnt bind json"})
 		return
 	}
-	newProduct := models.Product{
-		Name: request.Name,
-		Quantity: request.Quantity,
-	}
 
-	newID, err := h.Service.CreateProduct(newProduct)
+	newProduct, err := h.Service.CreateProduct(c.Request.Context(), request.Name, request.Quantity)
 	if err != nil {
-		_ = c.Error(err)
+		c.Error(err)
 		return
 	}
 	c.JSON(201, gin.H{
 		"status":"created",
-		"newProductID": newID,
+		"newProduct": *newProduct,
 	})
 
 }
 
-func (h *ProductHandler) FetchProduct(c *gin.Context) {
+func (h *ProductHandler) GetProduct(c *gin.Context) {
 	id := c.Param("id")
 	readID, err := strconv.Atoi(id)
 	if err != nil {
@@ -62,29 +58,23 @@ func (h *ProductHandler) FetchProduct(c *gin.Context) {
 		return
 	}
 
-	product, err := h.Service.GetProduct(readID)
-	switch{
-	case err == nil:
-		c.JSON(200, gin.H{
+	product, err := h.Service.GetProduct(c.Request.Context(), readID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(200, gin.H{
 		"status": "success",
 		"product": product,
-		})
-	case errors.Is(err, services.ErrInvalidID):
-		c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
-	case errors.Is(err, services.ErrProductNotFound):
-		c.JSON(404, gin.H{"error": services.ErrProductNotFound.Error()})
-	default:
-		log.Println(err)
-		c.JSON(500, gin.H{"error": services.ErrDatabase.Error()})
-	}
+	})
+
 }
 
 
-func (h *ProductHandler) AllProducts(c *gin.Context) {
-	products, err := h.Service.GetProducts()
+func (h *ProductHandler) GetAllProducts(c *gin.Context) {
+	products, err := h.Service.GetAllProducts(c.Request.Context())
 	if err != nil {
-		log.Println(err)
-		c.JSON(500, gin.H{"error": services.ErrDatabase.Error()})
+		c.Error(err)
 		return
 	}
 	c.JSON(200, gin.H{
@@ -108,26 +98,13 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "couldnt bind json"})
 		return
 	}
-	updatingProduct := models.Product{
-		ID: updateID,
-		Name: request.Name,
-		Quantity: request.Quantity,
-	}
 
-	err = h.Service.UpdateProduct(updatingProduct)
-	switch{
-	case err == nil:
-		c.JSON(200, gin.H{"status": "success"})
-	case errors.Is(err, services.ErrInvalidName):
-		c.JSON(400, gin.H{"error": services.ErrInvalidName.Error()})
-	case errors.Is(err, services.ErrInvalidQuantity):
-		c.JSON(400, gin.H{"error": services.ErrInvalidQuantity.Error()})
-	case errors.Is(err, services.ErrProductNotFound):
-		c.JSON(404, gin.H{"error": services.ErrProductNotFound.Error()})
-	default:
-		log.Println(err)
-		c.JSON(500, gin.H{"error": services.ErrDatabase.Error()})
+	err = h.Service.UpdateProduct(c.Request.Context(), updateID, request.Name, request.Quantity)
+	if err != nil {
+		c.Error(err)
+		return
 	}
+	c.JSON(200, gin.H{"status": "success"})
 }
 
 func (h *ProductHandler) PatchProduct(c *gin.Context) {
@@ -145,22 +122,12 @@ func (h *ProductHandler) PatchProduct(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.PatchProduct(patchID, request.Name, request.Quantity)
-	switch{
-	case err == nil:
-		c.JSON(200, gin.H{"status": "success"})
-	case errors.Is(err, services.ErrInvalidID):
-		c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
-	case errors.Is(err, services.ErrProductNotFound):
-		c.JSON(404, gin.H{"error": services.ErrProductNotFound.Error()})
-	case errors.Is(err, services.ErrInvalidName):
-		c.JSON(400, gin.H{"error": services.ErrInvalidName.Error()})
-	case errors.Is(err, services.ErrInvalidQuantity):
-		c.JSON(400, gin.H{"error": services.ErrInvalidQuantity.Error()})
-	default:
-		log.Println(err)
-		c.JSON(500, gin.H{"error": services.ErrDatabase.Error()})
+	err = h.Service.PatchProduct(c.Request.Context(), patchID, request.Name, request.Quantity)
+	if err != nil {
+		c.Error(err)
+		return
 	}
+	c.JSON(200, gin.H{"status": "success"})
 }
 
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
@@ -171,14 +138,10 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.DeleteProduct(deleteID)
-	switch{
-	case err == nil:
-		c.JSON(200, gin.H{"status": "success"})
-	case errors.Is(err, services.ErrProductNotFound):
-		c.JSON(404, gin.H{"error": services.ErrProductNotFound.Error()})
-	default:
-		log.Println(err)
-		c.JSON(500, gin.H{"error": services.ErrDatabase.Error()})
+	err = h.Service.DeleteProduct(c.Request.Context(), deleteID)
+	if err != nil {
+		c.Error(err)
+		return
 	}
+	c.JSON(200, gin.H{"status": "success"})
 }

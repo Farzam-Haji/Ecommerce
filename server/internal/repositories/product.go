@@ -1,9 +1,15 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+
 	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+var ErrDuplicateKey = errors.New("Product Already Exist")
 
 
 type PostgresProductRepository struct {
@@ -16,16 +22,30 @@ func NewPostgresProductRepository(db *sql.DB) *PostgresProductRepository {
 	}
 }
 
-func (pr *PostgresProductRepository) Create(product models.Product) (int, error) {
-	row := pr.db.QueryRow("INSERT INTO products(name, quantity) VALUES ($1, $2) RETURNING id",
+func (pr *PostgresProductRepository) Create(ctx	context.Context, product *models.Product) (error) {
+	row := pr.db.QueryRowContext(ctx, "INSERT INTO products(name, quantity) VALUES ($1, $2) RETURNING id",
 		product.Name, product.Quantity)
-	var id int
-	err := row.Scan(&id)
-	return id, err
+
+	err := row.Scan(
+		&product.ID,
+	)
+	if err == nil {
+		return nil
+	}
+
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return err
+	}
+	if pgErr.Code == "23505" {
+		return ErrDuplicateKey
+	}
+
+	return err
 }
 
-func (pr *PostgresProductRepository) Read(id int) (models.Product, error){
-	row := pr.db.QueryRow("SELECT id, name, quantity FROM products WHERE id = ($1)", id)
+func (pr *PostgresProductRepository) GetByID(ctx context.Context, id int) (models.Product, error){
+	row := pr.db.QueryRowContext(ctx, "SELECT id, name, quantity FROM products WHERE id = ($1)", id)
 	selectedProduct := models.Product{}
 	err := row.Scan(
 		&selectedProduct.ID,
@@ -35,8 +55,8 @@ func (pr *PostgresProductRepository) Read(id int) (models.Product, error){
 	return selectedProduct, err
 }
 
-func (pr *PostgresProductRepository) ReadAll() ([]models.Product, error) {
-	rows, err := pr.db.Query("SELECT id, name, quantity FROM products")
+func (pr *PostgresProductRepository) GetAll(ctx context.Context) ([]models.Product, error) {
+	rows, err := pr.db.QueryContext(ctx, "SELECT id, name, quantity FROM products")
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +81,8 @@ func (pr *PostgresProductRepository) ReadAll() ([]models.Product, error) {
 	return allProducts, nil
 }
 
-func (pr *PostgresProductRepository) Update(product models.Product) (int64, error){
-	result, err := pr.db.Exec("UPDATE products SET name = ($1), quantity = ($2) WHERE id = ($3)", 
+func (pr *PostgresProductRepository) Update(ctx	context.Context, product models.Product) (int64, error){
+	result, err := pr.db.ExecContext(ctx, "UPDATE products SET name = ($1), quantity = ($2) WHERE id = ($3)", 
 		product.Name, product.Quantity, product.ID)
 	if err != nil {
 		return 0, err
@@ -76,8 +96,8 @@ func (pr *PostgresProductRepository) Update(product models.Product) (int64, erro
 	return affectedRows, nil
 }
 
-func (pr *PostgresProductRepository) Delete(id int) (int64, error){
-	result, err := pr.db.Exec("DELETE FROM products WHERE id = ($1)", id)
+func (pr *PostgresProductRepository) Delete(ctx	context.Context, id int) (int64, error){
+	result, err := pr.db.ExecContext(ctx, "DELETE FROM products WHERE id = ($1)", id)
 	if err != nil {
 		return 0, err
 	}

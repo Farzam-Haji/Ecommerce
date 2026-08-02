@@ -7,6 +7,8 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"github.com/btalv/Ecommerce/server/internal/auth"
+	"github.com/btalv/Ecommerce/server/internal/repositories"
 	"github.com/btalv/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -52,6 +54,8 @@ func ErrorHandler() gin.HandlerFunc {
 		}
 		err := c.Errors.Last().Err
 		switch{
+		case errors.Is(err, repositories.ErrDuplicateKey):
+			c.JSON(409, gin.H{"error": repositories.ErrDuplicateKey.Error()})
 		case errors.Is(err, services.ErrInvalidID):
 			c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
 		case errors.Is(err, services.ErrInvalidName):
@@ -60,9 +64,16 @@ func ErrorHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": services.ErrInvalidQuantity.Error()})
 		case errors.Is(err, services.ErrProductNotFound):
 			c.JSON(404, gin.H{"error": services.ErrProductNotFound.Error()})
+		case errors.Is(err, auth.ErrInvalidToken):
+			log.Println(err)
+			c.JSON(401, gin.H{"error": auth.ErrInvalidToken.Error()})
+		case errors.Is(err, auth.ErrExpiredToken):
+			c.JSON(401, gin.H{"error": auth.ErrExpiredToken.Error()})
+		case errors.Is(err, ErrUnauthorized):
+			c.JSON(401, gin.H{"error": ErrUnauthorized.Error()})
 		default:
 			log.Println(err)
-			c.JSON(500, gin.H{"error": services.ErrDatabase.Error()})
+			c.JSON(500, gin.H{"error": services.ErrInternal.Error()})
 		}
 	}
 }
