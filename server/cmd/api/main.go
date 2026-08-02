@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
-    "os"
-    "log"
+	"log"
+	"os"
+
+	"github.com/btalv/Ecommerce/server/internal/auth"
 	"github.com/btalv/Ecommerce/server/internal/database"
+	"github.com/btalv/Ecommerce/server/internal/handlers"
+	"github.com/btalv/Ecommerce/server/internal/middlewares"
+	"github.com/btalv/Ecommerce/server/internal/repositories"
 	"github.com/btalv/Ecommerce/server/internal/routes"
-    "github.com/btalv/Ecommerce/server/internal/handlers"
-    "github.com/btalv/Ecommerce/server/internal/repositories"
-    "github.com/btalv/Ecommerce/server/internal/services"
-    "github.com/btalv/Ecommerce/server/internal/middlewares"
+	"github.com/btalv/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
-    "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 
@@ -41,18 +43,27 @@ func main() {
     fmt.Println("Ping is received. db is connected.")
     defer db.Close()
 
-    //constructor
+    // auth constructor
+    jwtManager := auth.NewJWTManager(os.Getenv("JWT_SECRET"))
+
+    // product constructor
     postgresProductRepository := repositories.NewPostgresProductRepository(db)
     productService := services.NewProductService(postgresProductRepository)
     productHandler := handlers.NewProductHandler(productService)
 
+    // user constructor
+    postgresUserRepository := repositories.NewPostgresUserRepository(db)
+    userService := services.NewUserService(postgresUserRepository, jwtManager)
+    userHandler := handlers.NewUserHandler(userService)
+
     // gin initilaztion
     engine := gin.New()
+    engine.Use(gin.Recovery())
     engine.Use(middlewares.CustomLogger())
     engine.Use(middlewares.RequestID())
-    engine.Use(gin.Logger())
-    engine.Use(gin.Recovery())
+    // engine.Use(gin.Logger())
     engine.Use(middlewares.ErrorHandler())
-    routes.RegisterRoutes(engine, productHandler)
+    engine.Use(middlewares.Authentication(jwtManager))
+    routes.RegisterRoutes(engine, productHandler, userHandler, jwtManager)
     engine.Run() // 0.0.0.0:8080
 }

@@ -1,65 +1,82 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/btalv/Ecommerce/server/internal/models"
 )
 
 type ProductRepository interface {
-	Create(models.Product) (int, error)
-	Read(int) (models.Product, error)
-	ReadAll() ([]models.Product, error)
-	Update(models.Product) 	(int64, error)
-	Delete(int)	(int64, error)	
+	Create(context.Context, *models.Product) (error)
+	GetByID(context.Context, int) (models.Product, error)
+	GetAll(context.Context) ([]models.Product, error)
+	Update(context.Context, models.Product) 	(int64, error)
+	Delete(context.Context, int)	(int64, error)	
 }
 
 
-type productService struct {
+type ProductService struct {
 	repository  	ProductRepository
 }
 
-func NewProductService(repositoryInterface ProductRepository) *productService {
-	return &productService{
+func NewProductService(repositoryInterface ProductRepository) *ProductService {
+	return &ProductService{
 		repository: repositoryInterface,
 	}
 }
 
-func (s *productService) CreateProduct(request models.Product) (int, error) {
-	if request.Name == "" {
-		return 0, ErrInvalidName
+func (s *ProductService) CreateProduct(ctx context.Context, name string, quantity int) (*models.Product, error) {
+	if name == "" {
+		return nil, ErrInvalidName
 	}
-	if request.Quantity < 0 {
-		return 0, ErrInvalidQuantity
+	if quantity < 0 {
+		return nil, ErrInvalidQuantity
 	}
-	return s.repository.Create(request)
+	newProduct := models.Product{
+		Name: name,
+		Quantity: quantity,
+	}
+
+	err := s.repository.Create(ctx, &newProduct)
+	if err != nil {
+		return nil, err
+	}
+	return &newProduct, nil
 }
 
-func (s *productService) GetProduct(request int) (models.Product, error) {
+func (s *ProductService) GetProduct(ctx context.Context, request int) (models.Product, error) {
 	if request <=0 {
 		return models.Product{}, ErrInvalidID
 	}
-	product, err := s.repository.Read(request)
+	product, err := s.repository.GetByID(ctx, request)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.Product{}, ErrProductNotFound
 	}
 	return product, err
 }
 
-func (s *productService) GetProducts() ([]models.Product, error) {
-	return s.repository.ReadAll()
+func (s *ProductService) GetAllProducts(ctx context.Context) ([]models.Product, error) {
+	return s.repository.GetAll(ctx)
 }
 
 
-func (s *productService) UpdateProduct(request models.Product) (error) {
-	if request.Name == "" {
+func (s *ProductService) UpdateProduct(ctx context.Context, id int, name string, quantity int) (error) {
+	if name == "" {
 		return ErrInvalidName
 	}
-	if request.Quantity < 0 {
+	if quantity < 0 {
 		return ErrInvalidQuantity
 	}
 
-	affected, err := s.repository.Update(request)
+	product := models.Product{
+		ID: id,
+		Name: name,
+		Quantity: quantity,
+	}
+
+	affected, err := s.repository.Update(ctx, product)
 	if err != nil {
 		return err
 	}
@@ -69,12 +86,12 @@ func (s *productService) UpdateProduct(request models.Product) (error) {
 	return nil
 }
 
-func (s *productService) PatchProduct(id int, name *string, quantity *int) (error) {
+func (s *ProductService) PatchProduct(ctx context.Context, id int, name *string, quantity *int) (error) {
 	if id <= 0 {
 		return ErrInvalidID
 	}
 
-	updatingProduct, err := s.repository.Read(id)
+	updatingProduct, err := s.repository.GetByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrProductNotFound
 	}
@@ -96,7 +113,7 @@ func (s *productService) PatchProduct(id int, name *string, quantity *int) (erro
 		updatingProduct.Quantity = *quantity
 	}
 
-	affected, err := s.repository.Update(updatingProduct)
+	affected, err := s.repository.Update(ctx, updatingProduct)
 	if err != nil {
 		return err
 	}
@@ -106,12 +123,12 @@ func (s *productService) PatchProduct(id int, name *string, quantity *int) (erro
 	return nil
 }
 
-func (s *productService) DeleteProduct(request int) (error) {
+func (s *ProductService) DeleteProduct(ctx context.Context, request int) (error) {
 	if request <= 0 {
 		return ErrInvalidID
 	}
 
-	affected, err := s.repository.Delete(request)
+	affected, err := s.repository.Delete(ctx, request)
 	if err != nil {
 		return err
 	}
