@@ -1,19 +1,23 @@
 package handlers
 
 //Product
+//Price intented to be used as minor units
 type CreateProductRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Quantity int    `json:"quantity" binding:"required,gt=0"`
+	Quantity int32    `json:"quantity" binding:"required,gte=0"`
+	Price 	int64 	`json:"price" binding:"gte=0"`
 }
 
 type UpdateProductRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Quantity int    `json:"quantity" binding:"required,gt=0"`
+	Quantity int32    `json:"quantity" binding:"required,gte=0"`
+	Price 	int64 	`json:"price" binding:"gte=0"`
 }
 
 type PatchProductRequest struct {
 	Name     *string `json:"name"`
-	Quantity *int    `json:"quantity"`
+	Quantity *int32    `json:"quantity"`
+	Price  	*int64 	`json:"price"`
 }
 
 // User

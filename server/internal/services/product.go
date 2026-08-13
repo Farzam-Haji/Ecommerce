@@ -10,10 +10,11 @@ import (
 
 type ProductRepository interface {
 	Create(context.Context, *models.Product) (error)
-	GetByID(context.Context, int) (models.Product, error)
-	GetAll(context.Context) ([]models.Product, error)
-	Update(context.Context, models.Product) 	(int64, error)
-	Delete(context.Context, int)	(int64, error)	
+	GetByID(context.Context, int64) (*models.Product, error)
+	GetAll(context.Context) ([]*models.Product, error)
+	Update(context.Context, *models.Product) 	(int64, error)
+	Delete(context.Context, int64, int64)	(int64, error)
+	GetBySellerID(context.Context, int64) ([]*models.Product, error)	
 }
 
 
@@ -27,42 +28,47 @@ func NewProductService(repositoryInterface ProductRepository) *ProductService {
 	}
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, name string, quantity int) (*models.Product, error) {
+func (ps *ProductService) CreateProduct(ctx context.Context, name string, quantity int32, userID int64, price int64) (*models.Product, error) {
 	if name == "" {
 		return nil, ErrInvalidName
 	}
 	if quantity < 0 {
 		return nil, ErrInvalidQuantity
 	}
+	if price < 0 {
+		return nil, ErrInvalidPrice
+	}
 	newProduct := models.Product{
 		Name: name,
 		Quantity: quantity,
+		SellerID: userID,
+		Price: price,
 	}
 
-	err := s.repository.Create(ctx, &newProduct)
+	err := ps.repository.Create(ctx, &newProduct)
 	if err != nil {
 		return nil, err
 	}
 	return &newProduct, nil
 }
 
-func (s *ProductService) GetProduct(ctx context.Context, request int) (models.Product, error) {
-	if request <=0 {
-		return models.Product{}, ErrInvalidID
+func (ps *ProductService) GetProduct(ctx context.Context, id int64) (*models.Product, error) {
+	if id <=0 {
+		return nil, ErrInvalidID
 	}
-	product, err := s.repository.GetByID(ctx, request)
+	product, err := ps.repository.GetByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return models.Product{}, ErrProductNotFound
+		return nil, ErrProductNotFound
 	}
 	return product, err
 }
 
-func (s *ProductService) GetAllProducts(ctx context.Context) ([]models.Product, error) {
-	return s.repository.GetAll(ctx)
+func (ps *ProductService) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
+	return ps.repository.GetAll(ctx)
 }
 
 
-func (s *ProductService) UpdateProduct(ctx context.Context, id int, name string, quantity int) (error) {
+func (ps *ProductService) UpdateProduct(ctx context.Context, id int64, userID int64, name string, quantity int32, price int64) (error) {
 	if name == "" {
 		return ErrInvalidName
 	}
@@ -70,33 +76,40 @@ func (s *ProductService) UpdateProduct(ctx context.Context, id int, name string,
 		return ErrInvalidQuantity
 	}
 
-	product := models.Product{
-		ID: id,
-		Name: name,
-		Quantity: quantity,
+	product, err := ps.GetProduct(ctx, id)
+	if err != nil {
+		return err
+	}
+	if product.SellerID != userID {
+		return ErrUnauthorized
 	}
 
-	affected, err := s.repository.Update(ctx, product)
+	product.Name = name
+	product.Quantity = quantity
+	product.Price = price
+
+	affected, err := ps.repository.Update(ctx, product)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
-		return ErrProductNotFound
+		return ErrInternal
 	}
 	return nil
 }
 
-func (s *ProductService) PatchProduct(ctx context.Context, id int, name *string, quantity *int) (error) {
+func (ps *ProductService) PatchProduct(ctx context.Context, id int64, userID int64, name *string, quantity *int32, price *int64) (error) {
 	if id <= 0 {
 		return ErrInvalidID
 	}
 
-	updatingProduct, err := s.repository.GetByID(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrProductNotFound
-	}
+	product, err := ps.GetProduct(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if product.SellerID != userID {
+		return ErrUnauthorized
 	}
 
 	if name != nil && *name == "" {
@@ -105,35 +118,56 @@ func (s *ProductService) PatchProduct(ctx context.Context, id int, name *string,
 	if quantity != nil && *quantity < 0 {
 		return ErrInvalidQuantity
 	}
+	if price != nil && *price < 0 {
+		return ErrInvalidPrice
+	}
 
 	if name != nil {
-		updatingProduct.Name = *name
+		product.Name = *name
 	}
 	if quantity != nil {
-		updatingProduct.Quantity = *quantity
+		product.Quantity = *quantity
+	}
+	if price != nil {
+		product.Price = *price
 	}
 
-	affected, err := s.repository.Update(ctx, updatingProduct)
+	affected, err := ps.repository.Update(ctx, product)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
-		return ErrProductNotFound
+		return ErrInternal
 	}
 	return nil
 }
 
-func (s *ProductService) DeleteProduct(ctx context.Context, request int) (error) {
-	if request <= 0 {
+func (ps *ProductService) DeleteProduct(ctx context.Context, id int64, userID int64) (error) {
+	if id <= 0 {
 		return ErrInvalidID
 	}
 
-	affected, err := s.repository.Delete(ctx, request)
+	product, err := ps.GetProduct(ctx, id)
+	if err != nil {
+		return err
+	}
+	if product.SellerID != userID {
+		return ErrUnauthorized
+	}
+
+	affected, err := ps.repository.Delete(ctx, id, userID)
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
-		return ErrProductNotFound
+		return ErrInternal
 	}
 	return nil
+}
+
+func (ps *ProductService) GetUserProducts(ctx context.Context, userID int64) ([]*models.Product, error){
+	if userID <= 0 {
+		return nil, ErrUnauthorized
+	}
+	return ps.repository.GetBySellerID(ctx, userID)
 }
