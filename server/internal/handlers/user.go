@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
 	"github.com/gin-gonic/gin"
@@ -26,8 +26,7 @@ func NewUserHandler(serviceInterface UserServiceAPI) *UserHandler {
 func (uh *UserHandler) Register(c *gin.Context) {
 	var request RegisterRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		log.Println(err)
-		c.JSON(400, gin.H{"error":"couldnt bind json"})
+		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
 		return
 	}
 
@@ -46,8 +45,7 @@ func (uh *UserHandler) Register(c *gin.Context) {
 func (uh *UserHandler) Login(c *gin.Context) {
 	var request LoginRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		log.Println(err)
-		c.JSON(400, gin.H{"error":"couldnt bind json"})
+		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
 		return
 	}
 

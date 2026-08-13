@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/btalv/Ecommerce/server/internal/auth"
+	"github.com/btalv/Ecommerce/server/internal/handlers"
 	"github.com/btalv/Ecommerce/server/internal/repositories"
 	"github.com/btalv/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
@@ -56,6 +57,9 @@ func ErrorHandler() gin.HandlerFunc {
 		switch{
 		case errors.Is(err, repositories.ErrDuplicateKey):
 			c.JSON(409, gin.H{"error": repositories.ErrDuplicateKey.Error()})
+		case errors.Is(err, handlers.ErrInvalidJSON):
+			log.Println(err)
+			c.JSON(400, gin.H{"error": handlers.ErrInvalidJSON.Error()})
 		case errors.Is(err, services.ErrInvalidID):
 			c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
 		case errors.Is(err, services.ErrInvalidName):
@@ -69,6 +73,8 @@ func ErrorHandler() gin.HandlerFunc {
 			c.JSON(401, gin.H{"error": auth.ErrInvalidToken.Error()})
 		case errors.Is(err, auth.ErrExpiredToken):
 			c.JSON(401, gin.H{"error": auth.ErrExpiredToken.Error()})
+		case errors.Is(err, services.ErrWrongCredential):
+			c.JSON(401, gin.H{"error": services.ErrWrongCredential.Error()})
 		case errors.Is(err, ErrUnauthorized):
 			c.JSON(401, gin.H{"error": ErrUnauthorized.Error()})
 		default:

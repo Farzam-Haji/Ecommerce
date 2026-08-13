@@ -50,12 +50,7 @@ func RequireUser(jwtManager *auth.JWTManager) gin.HandlerFunc {
 			c.Abort()
 			return 
 		}
-		//check role substitute
-		if claims.UserID == 0 {
-			c.Error(ErrUnauthorized)
-			c.Abort()
-			return
-		}
+		c.Set("userID", claims.UserID)
 
 		c.Next()
 	}

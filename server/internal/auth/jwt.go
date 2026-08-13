@@ -31,7 +31,7 @@ func (m *JWTManager) GenerateToken(userID int64) (string, error) {
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(
-				time.Now().Add(1 * time.Hour),
+				time.Now().Add(10 * time.Hour),
 			),
 			IssuedAt: jwt.NewNumericDate(
 				time.Now(),
