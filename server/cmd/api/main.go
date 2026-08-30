@@ -56,6 +56,11 @@ func main() {
     userService := services.NewUserService(postgresUserRepository, jwtManager)
     userHandler := handlers.NewUserHandler(userService)
 
+    // cart constructor
+    postgresCartRepository := repositories.NewPostgresCartRepository(db)
+    cartService := services.NewCartService(postgresCartRepository, postgresProductRepository)
+    cartHandler := handlers.NewCartHandler(cartService)
+
     // gin initilaztion
     engine := gin.New()
     engine.Use(gin.Recovery())
@@ -64,6 +69,6 @@ func main() {
     // engine.Use(gin.Logger())
     engine.Use(middlewares.ErrorHandler())
     engine.Use(middlewares.Authentication(jwtManager))
-    routes.RegisterRoutes(engine, productHandler, userHandler, jwtManager)
+    routes.RegisterRoutes(engine, productHandler, userHandler, cartHandler, jwtManager)
     engine.Run() // 0.0.0.0:8080
 }

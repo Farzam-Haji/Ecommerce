@@ -9,9 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var ErrDuplicateKey = errors.New("Product Already Exist")
-
-
 type PostgresProductRepository struct {
 	db	*sql.DB
 }
@@ -29,18 +26,17 @@ func (pr *PostgresProductRepository) Create(ctx	context.Context, product *models
 	err := row.Scan(
 		&product.ID,
 	)
-	if err == nil {
-		return nil
-	}
-
-	var pgErr *pgconn.PgError
-	if !errors.As(err, &pgErr) {
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) {
+			return err
+		}
+		if pgErr.Code == "23505" {
+			return ErrDuplicateKey
+		}
 		return err
 	}
-	if pgErr.Code == "23505" {
-		return ErrDuplicateKey
-	}
-	return err
+	return nil
 }
 
 func (pr *PostgresProductRepository) GetByID(ctx context.Context, id int64) (*models.Product, error) {
@@ -54,7 +50,13 @@ func (pr *PostgresProductRepository) GetByID(ctx context.Context, id int64) (*mo
 		&selectedProduct.SellerID,
 		&selectedProduct.Price,
 	)
-	return &selectedProduct, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrRowNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &selectedProduct, nil
 }
 
 func (pr *PostgresProductRepository) GetAll(ctx context.Context) ([]*models.Product, error) {
@@ -98,12 +100,7 @@ func (pr *PostgresProductRepository) Update(ctx	context.Context, product *models
 	    return 0, err
 	}
 
-	affectedRows, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	return affectedRows, nil
+	return result.RowsAffected()
 }
 
 func (pr *PostgresProductRepository) Delete(ctx	context.Context, id int64, seller_id int64) (int64, error) {
@@ -112,11 +109,7 @@ func (pr *PostgresProductRepository) Delete(ctx	context.Context, id int64, selle
 		return 0, err
 	}
 
-	affectedRows, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-	return affectedRows, nil
+	return result.RowsAffected()
 }
 
 func (pr *PostgresProductRepository) GetBySellerID(ctx context.Context, seller_id int64) ([]*models.Product, error) {

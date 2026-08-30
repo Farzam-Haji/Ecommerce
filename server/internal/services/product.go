@@ -2,10 +2,10 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/btalv/Ecommerce/server/internal/repositories"
 )
 
 type ProductRepository interface {
@@ -57,7 +57,7 @@ func (ps *ProductService) GetProduct(ctx context.Context, id int64) (*models.Pro
 		return nil, ErrInvalidID
 	}
 	product, err := ps.repository.GetByID(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, repositories.ErrRowNotFound) {
 		return nil, ErrProductNotFound
 	}
 	return product, err
