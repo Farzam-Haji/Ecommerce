@@ -3,17 +3,33 @@ package models
 import "time"
 
 type Product struct {
-	ID 		int64 	`json:"id"`
-	Name 	string 	`json:"name"`
+	ID 			int64 	`json:"id"`
+	Name 		string 	`json:"name"`
 	Quantity	int32 	`json:"quantity"`
 	SellerID	int64 	`json:"seller_id"`
-	Price	int64 	`json:"price"` 	//minor units
+	Price		int64 	`json:"price"` 	//minor units
 }
 
 type User struct {
-	ID 		int64
-	Email 	string
-	PasswordHash	string
-	CreatedAt 	time.Time
-	UpdatedAt	time.Time
+	ID 				int64    	`json:"id"`
+	Email 			string  	`json:"email"`
+	PasswordHash	string  	`json:"password_hash"`
+	CreatedAt 		time.Time  	`json:"created_at"`
+	UpdatedAt		time.Time  	`json:"updated_at"`
+}
+
+type Cart struct {
+	ID  		int64  		`json:"id"`
+	UserID 		int64  		`json:"user_id"`
+	CreatedAt  	time.Time  	`json:"created_at"`
+	UpdatedAt  	time.Time  	`json:"updated_at"`
+}
+
+type CartItem struct {
+	ID 			int64  		`json:"id"`
+	CartID		int64  		`json:"cart_id"`
+	ProductID	*int64  	`json:"product_id"`
+	Name		string  	`json:"name"`
+	Quantity	int32  		`json:"quantity"`
+	Price  		*int64  	`json:"price"`
 }

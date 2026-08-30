@@ -3,11 +3,11 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/jackc/pgx/v5/pgconn"
 )
-
-
 
 
 type PostgresUserRepository struct {
@@ -28,7 +28,17 @@ func (ur *PostgresUserRepository) Create(ctx context.Context, user *models.User)
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-	return err
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if !errors.As(err, &pgErr) {
+			return err
+		}
+		if pgErr.Code == "23505" {
+			return ErrDuplicateKey
+		}
+		return err
+	}
+	return nil
 }
 
 func (ur *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -42,7 +52,13 @@ func (ur *PostgresUserRepository) GetByEmail(ctx context.Context, email string) 
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-	return &user, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrRowNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (ur *PostgresUserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
@@ -56,5 +72,11 @@ func (ur *PostgresUserRepository) GetByID(ctx context.Context, id int64) (*model
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
-	return &user, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrRowNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

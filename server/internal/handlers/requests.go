@@ -1,5 +1,7 @@
 package handlers
 
+import _"github.com/gin-gonic/gin/binding"
+
 //Product
 //Price intented to be used as minor units
 type CreateProductRequest struct {
@@ -29,4 +31,14 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email 	string 	`json:"email" binding:"required"`
 	Password	string 	`json:"password" binding:"required"`
+}
+
+// Cart
+type AddItemRequest struct {
+	ProductID 	int64  		`json:"product_id" binding:"required,gt=0"`
+	Quantity  	*int32  		`json:"quantity"`
+}
+
+type UpdateItemQuantityRequest struct {
+	Quantity  	int32  		`json:"quantity" binding:"required,gte=0"`
 }

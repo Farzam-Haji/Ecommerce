@@ -2,14 +2,11 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log"
-
 	"github.com/btalv/Ecommerce/server/internal/auth"
 	"github.com/btalv/Ecommerce/server/internal/models"
-
-	// "github.com/btalv/Ecommerce/server/internal/repositories"
+	"github.com/btalv/Ecommerce/server/internal/repositories"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,7 +33,7 @@ func (us *UserService) Register(ctx context.Context, email string, password stri
 	switch{
 	case err == nil:
 		return nil, "", ErrEmailExists
-	case errors.Is(err, sql.ErrNoRows):
+	case errors.Is(err, repositories.ErrRowNotFound):
 		//email available
 	default:
 		return nil, "", err
@@ -69,7 +66,7 @@ func (us *UserService) Register(ctx context.Context, email string, password stri
 
 func (us *UserService) Login(ctx context.Context, email string, password string) (string, error){
 	user, err := us.repository.GetByEmail(ctx, email)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, repositories.ErrRowNotFound) {
 		return "", ErrWrongCredential
 	}
 	if err != nil {
