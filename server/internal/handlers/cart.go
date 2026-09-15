@@ -13,9 +13,10 @@ import (
 
 type CartServiceAPI interface {
 	GetUserCartItems(ctx context.Context, userID int64) ([]*models.CartItem, []string, error)
-	AddToCart(ctx context.Context, userID int64, productID int64, pointerQuantity *int32) (error)
+	AddToCart(ctx context.Context, userID int64, productID int64, pointerQuantity *int32) (*models.CartItem, error)
 	UpdateItemQuantity(ctx context.Context, userID int64, itemID int64, quantity int32) (error)
 	DeleteFromCart(ctx context.Context, userID int64, itemID int64) (error)
+	DeleteCart(ctx context.Context, userID int64) (error)
 }
 
 type CartHandler struct {
@@ -29,14 +30,9 @@ func NewCartHandler(serviceInterface CartServiceAPI) *CartHandler {
 }
 
 func (ch *CartHandler) GetMyCartItems(c *gin.Context) {
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -46,7 +42,7 @@ func (ch *CartHandler) GetMyCartItems(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.Error(fmt.Errorf("%w: %v", services.ErrInternal, err))
+		c.Error(err)
 		return
 	}
 
@@ -65,51 +61,45 @@ func (ch *CartHandler) GetMyCartItems(c *gin.Context) {
 func (ch *CartHandler) AddItemToMyCart(c *gin.Context) {
 	var request AddItemRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
-		return
-	}
-
-	err := ch.Service.AddToCart(c.Request.Context(), userID, request.ProductID, request.Quantity)
+	userID, err := getUserID(c)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	c.JSON(201, gin.H{"status": "created"})
+
+	item, err := ch.Service.AddToCart(c.Request.Context(), userID, request.ProductID, request.Quantity)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(201, gin.H{
+		"status": "created",
+		"item": item,
+	})
 }
 
 func (ch *CartHandler) UpdateMyItemQuantity(c *gin.Context) {
-	param := c.Param("itemID")
-	itemID, err := strconv.ParseInt(param, 10, 64)
+	id := c.Param("id")
+	itemID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.Error(services.ErrInvalidID)
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
 		return
 	}
 
 	var request UpdateItemQuantityRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -118,25 +108,23 @@ func (ch *CartHandler) UpdateMyItemQuantity(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(200, gin.H{"status": "success"})
+
+	c.JSON(200, gin.H{
+		"status": "success",
+	})
 }
 
 func (ch *CartHandler) DeleteMyItem(c *gin.Context) {
-	param := c.Param("itemID")
-	itemID, err := strconv.ParseInt(param, 10, 64)
+	id := c.Param("id")
+	itemID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.Error(services.ErrInvalidID)
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -145,5 +133,26 @@ func (ch *CartHandler) DeleteMyItem(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(200, gin.H{"status": "success"})
+
+	c.JSON(200, gin.H{
+		"status": "success",
+	})
+}
+
+func (ch *CartHandler) DeleteMyCart(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	err = ch.Service.DeleteCart(c.Request.Context(), userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": "success",
+	})
 }

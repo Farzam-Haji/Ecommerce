@@ -3,18 +3,19 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
 	"github.com/btalv/Ecommerce/server/internal/repositories"
 )
 
 type ProductRepository interface {
-	Create(context.Context, *models.Product) (error)
-	GetByID(context.Context, int64) (*models.Product, error)
-	GetAll(context.Context) ([]*models.Product, error)
-	Update(context.Context, *models.Product) 	(int64, error)
-	Delete(context.Context, int64, int64)	(int64, error)
-	GetBySellerID(context.Context, int64) ([]*models.Product, error)	
+	Create(ctx	context.Context, product *models.Product) (error)
+	GetByID(ctx context.Context, id int64) (*models.Product, error)
+	GetAll(ctx context.Context) ([]*models.Product, error)
+	Update(ctx	context.Context, product *models.Product) (int64, error)
+	Delete(ctx	context.Context, id int64, sellerID int64) (int64, error)
+	GetBySellerID(ctx context.Context, sellerID int64) ([]*models.Product, error)	
 }
 
 
@@ -38,6 +39,7 @@ func (ps *ProductService) CreateProduct(ctx context.Context, name string, quanti
 	if price < 0 {
 		return nil, ErrInvalidPrice
 	}
+
 	newProduct := models.Product{
 		Name: name,
 		Quantity: quantity,
@@ -46,9 +48,13 @@ func (ps *ProductService) CreateProduct(ctx context.Context, name string, quanti
 	}
 
 	err := ps.repository.Create(ctx, &newProduct)
-	if err != nil {
-		return nil, err
+	if errors.Is(err, repositories.ErrDuplicateKey) {
+		return nil, ErrDuplicateProduct
 	}
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+
 	return &newProduct, nil
 }
 
@@ -56,15 +62,25 @@ func (ps *ProductService) GetProduct(ctx context.Context, id int64) (*models.Pro
 	if id <=0 {
 		return nil, ErrInvalidID
 	}
+
 	product, err := ps.repository.GetByID(ctx, id)
 	if errors.Is(err, repositories.ErrRowNotFound) {
 		return nil, ErrProductNotFound
 	}
-	return product, err
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+
+	return product, nil
 }
 
 func (ps *ProductService) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
-	return ps.repository.GetAll(ctx)
+	products, err := ps.repository.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+
+	return products, nil
 }
 
 
@@ -80,6 +96,7 @@ func (ps *ProductService) UpdateProduct(ctx context.Context, id int64, userID in
 	if err != nil {
 		return err
 	}
+
 	if product.SellerID != userID {
 		return ErrUnauthorized
 	}
@@ -90,11 +107,12 @@ func (ps *ProductService) UpdateProduct(ctx context.Context, id int64, userID in
 
 	affected, err := ps.repository.Update(ctx, product)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	if affected == 0 {
-		return ErrInternal
+		return fmt.Errorf("%w: unable to update product %v", ErrInternal, product.Name)
 	}
+
 	return nil
 }
 
@@ -134,11 +152,12 @@ func (ps *ProductService) PatchProduct(ctx context.Context, id int64, userID int
 
 	affected, err := ps.repository.Update(ctx, product)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	if affected == 0 {
-		return ErrInternal
+		return fmt.Errorf("%w: unable to update product %v", ErrInternal, product.Name)
 	}
+
 	return nil
 }
 
@@ -151,17 +170,19 @@ func (ps *ProductService) DeleteProduct(ctx context.Context, id int64, userID in
 	if err != nil {
 		return err
 	}
+
 	if product.SellerID != userID {
 		return ErrUnauthorized
 	}
 
 	affected, err := ps.repository.Delete(ctx, id, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	if affected == 0 {
-		return ErrInternal
+		return fmt.Errorf("%w: unable to delete product %v", ErrInternal, product.Name)
 	}
+
 	return nil
 }
 
@@ -169,5 +190,11 @@ func (ps *ProductService) GetUserProducts(ctx context.Context, userID int64) ([]
 	if userID <= 0 {
 		return nil, ErrUnauthorized
 	}
-	return ps.repository.GetBySellerID(ctx, userID)
+
+	products, err := ps.repository.GetBySellerID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+	
+	return products, nil
 }

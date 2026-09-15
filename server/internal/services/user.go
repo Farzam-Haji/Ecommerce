@@ -3,7 +3,8 @@ package services
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
+
 	"github.com/btalv/Ecommerce/server/internal/auth"
 	"github.com/btalv/Ecommerce/server/internal/models"
 	"github.com/btalv/Ecommerce/server/internal/repositories"
@@ -32,11 +33,11 @@ func (us *UserService) Register(ctx context.Context, email string, password stri
 	_, err := us.repository.GetByEmail(ctx, email)
 	switch{
 	case err == nil:
-		return nil, "", ErrEmailExists
+		return nil, "", ErrEmailUnavailable
 	case errors.Is(err, repositories.ErrRowNotFound):
 		//email available
 	default:
-		return nil, "", err
+		return nil, "", fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	if len(password) < 8 {
@@ -45,21 +46,25 @@ func (us *UserService) Register(ctx context.Context, email string, password stri
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("%w: %w", ErrInternal, err)
 	}
+
 	newUser := models.User{
 		Email: email,
 		PasswordHash: string(hash),
 	}
 
 	err = us.repository.Create(ctx, &newUser)
+	if errors.Is(err, repositories.ErrDuplicateKey) {
+		return nil, "", ErrEmailUnavailable
+	}
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	token, err := us.authentication.GenerateToken(newUser.ID)
 	if err != nil {
-		log.Println(err)
+		return nil, "", fmt.Errorf("%w: %w", ErrTokenGenFailed, err)
 	}
 	return &newUser, token, nil	
 }
@@ -70,7 +75,7 @@ func (us *UserService) Login(ctx context.Context, email string, password string)
 		return "", ErrWrongCredential
 	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
@@ -78,5 +83,9 @@ func (us *UserService) Login(ctx context.Context, email string, password string)
 		return "", ErrWrongCredential
 	}
 	
-	return us.authentication.GenerateToken(user.ID)
+	token, err := us.authentication.GenerateToken(user.ID)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrTokenGenFailed, err)
+	}
+	return token, nil
 }

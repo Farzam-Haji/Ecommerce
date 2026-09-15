@@ -103,8 +103,8 @@ func (pr *PostgresProductRepository) Update(ctx	context.Context, product *models
 	return result.RowsAffected()
 }
 
-func (pr *PostgresProductRepository) Delete(ctx	context.Context, id int64, seller_id int64) (int64, error) {
-	result, err := pr.db.ExecContext(ctx, "DELETE FROM products WHERE id = ($1) AND seller_id = ($2)", id, seller_id)
+func (pr *PostgresProductRepository) Delete(ctx	context.Context, id int64, sellerID int64) (int64, error) {
+	result, err := pr.db.ExecContext(ctx, "DELETE FROM products WHERE id = ($1) AND seller_id = ($2)", id, sellerID)
 	if err != nil {
 		return 0, err
 	}
@@ -112,8 +112,8 @@ func (pr *PostgresProductRepository) Delete(ctx	context.Context, id int64, selle
 	return result.RowsAffected()
 }
 
-func (pr *PostgresProductRepository) GetBySellerID(ctx context.Context, seller_id int64) ([]*models.Product, error) {
-	rows, err := pr.db.QueryContext(ctx, "SELECT id, name, quantity, seller_id, price FROM products WHERE seller_id = ($1)", seller_id)
+func (pr *PostgresProductRepository) GetBySellerID(ctx context.Context, sellerID int64) ([]*models.Product, error) {
+	rows, err := pr.db.QueryContext(ctx, "SELECT id, name, quantity, seller_id, price FROM products WHERE seller_id = ($1)", sellerID)
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ func (cr *PostgresCartRepository) CreateCart(ctx context.Context, userID int64) 
 }
 
 func (cr *PostgresCartRepository) GetByUserID(ctx context.Context, userID int64) (*models.Cart, error) {
-	row := cr.db.QueryRowContext(ctx, "SELECT id, user_id, created_at, updated_at FROM carts WHERE user_id = $1",
+	row := cr.db.QueryRowContext(ctx, "SELECT id, user_id, created_at FROM carts WHERE user_id = $1",
 		userID,
 	)
 		
@@ -52,7 +52,6 @@ func (cr *PostgresCartRepository) GetByUserID(ctx context.Context, userID int64)
 		&cart.ID,
 		&cart.UserID,
 		&cart.CreatedAt,
-		&cart.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrRowNotFound
@@ -78,9 +77,9 @@ func (cr *PostgresCartRepository) DeleteCart(ctx context.Context, userID int64) 
 	return affected, nil
 }
 
-func (cr *PostgresCartRepository) AddItem(ctx context.Context, item *models.CartItem) (error) {
+func (cr *PostgresCartRepository) AddItem(ctx context.Context, item *models.CartItem) (*models.CartItem, error) {
 	row := cr.db.QueryRowContext(ctx, "INSERT INTO cart_items(cart_id, product_id, name, quantity) VALUES ($1, $2, $3, $4) RETURNING id",
-		item.CartID, item.ProductID, item.Name, item.Quantity,
+		item.CartID, *item.ProductID, item.Name, item.Quantity,
 	)
 
 	err := row.Scan(
@@ -89,14 +88,14 @@ func (cr *PostgresCartRepository) AddItem(ctx context.Context, item *models.Cart
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if !errors.As(err, &pgErr) {
-			return err
+			return nil, err
 		}
 		if pgErr.Code == "23505" {
-			return ErrDuplicateKey
+			return nil, ErrDuplicateKey
 		}
-		return err
+		return nil, err
 	}
-	return nil
+	return item, nil
 }
 
 func (cr *PostgresCartRepository) GetItem(ctx context.Context, cartID int64, productID int64) (*models.CartItem, error) {

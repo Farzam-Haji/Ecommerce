@@ -8,6 +8,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const TokenExpiresAfter = 72 * time.Hour
+
+var ErrInvalidToken = errors.New("Invalid Token")
+var ErrExpiredToken = errors.New("Expired Token")
+
+
 type CustomClaims struct {
 	UserID 		int64
 	jwt.RegisteredClaims
@@ -23,15 +29,12 @@ func NewJWTManager(secret string) *JWTManager {
 	}
 }
 
-var ErrInvalidToken = errors.New("Invalid Token")
-var ErrExpiredToken = errors.New("Expired Token")
-
 func (m *JWTManager) GenerateToken(userID int64) (string, error) {
 	claim := CustomClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(
-				time.Now().Add(10 * time.Hour),
+				time.Now().Add(TokenExpiresAfter),
 			),
 			IssuedAt: jwt.NewNumericDate(
 				time.Now(),
@@ -55,12 +58,13 @@ func (m *JWTManager) ValidateToken(singedToken string) (*CustomClaims, error) {
 		case errors.Is(err, jwt.ErrTokenExpired):
 			return nil, ErrExpiredToken
 		default:
-			return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+			return nil, fmt.Errorf("%w: %w", ErrInvalidToken, err)
 		}
 	}
 
 	if claims, ok := parsedToken.Claims.(*CustomClaims); ok && parsedToken.Valid {
 		return claims, nil
 	}
+	
 	return nil, ErrInvalidToken
 }

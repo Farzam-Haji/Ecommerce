@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, userHandler *handlers.UserHandler, cartHandler *handlers.CartHandler, jwtManager *auth.JWTManager) {
+func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, userHandler *handlers.UserHandler, cartHandler *handlers.CartHandler, orderHandler *handlers.OrderHandler, jwtManager *auth.JWTManager) {
 	api := r.Group("/api")
 	v1 := api.Group("/v1")
 	v1.GET("/ping", handlers.Ping)
@@ -24,7 +24,12 @@ func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, user
 	v1.POST("/login", userHandler.Login)
 
 	v1.GET("/cart", middlewares.RequireUser(jwtManager), cartHandler.GetMyCartItems)
+	v1.DELETE("/cart", middlewares.RequireUser(jwtManager), cartHandler.DeleteMyCart)
 	v1.POST("/cart/items", middlewares.RequireUser(jwtManager), cartHandler.AddItemToMyCart)
-	v1.PATCH("/cart/items/:itemID", middlewares.RequireUser(jwtManager), cartHandler.UpdateMyItemQuantity)
-	v1.DELETE("/cart/items/:itemID", middlewares.RequireUser(jwtManager), cartHandler.DeleteMyItem)
+	v1.PATCH("/cart/items/:id", middlewares.RequireUser(jwtManager), cartHandler.UpdateMyItemQuantity)
+	v1.DELETE("/cart/items/:id", middlewares.RequireUser(jwtManager), cartHandler.DeleteMyItem)
+
+	v1.GET("/orders", middlewares.RequireUser(jwtManager), orderHandler.GetMyOrders)
+	v1.POST("/orders", middlewares.RequireUser(jwtManager), orderHandler.CreateOrder)
+	v1.GET("/orders/:id", middlewares.RequireUser(jwtManager), orderHandler.GetOrder)
 }
