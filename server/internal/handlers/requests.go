@@ -13,7 +13,7 @@ type CreateProductRequest struct {
 type UpdateProductRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Quantity int32    `json:"quantity" binding:"required,gte=0"`
-	Price 	int64 	`json:"price" binding:"gte=0"`
+	Price 	int64 	`json:"price" binding:"required,gte=0"`
 }
 
 type PatchProductRequest struct {

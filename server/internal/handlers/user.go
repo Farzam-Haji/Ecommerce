@@ -26,7 +26,7 @@ func NewUserHandler(serviceInterface UserServiceAPI) *UserHandler {
 func (uh *UserHandler) Register(c *gin.Context) {
 	var request RegisterRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
@@ -35,9 +35,10 @@ func (uh *UserHandler) Register(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	
 	c.JSON(201, gin.H{
 		"status": "created",
-		"user": user,
+		"user": user.Email,
 		"token": jwt,
 	})
 }
@@ -45,7 +46,7 @@ func (uh *UserHandler) Register(c *gin.Context) {
 func (uh *UserHandler) Login(c *gin.Context) {
 	var request LoginRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
@@ -54,6 +55,7 @@ func (uh *UserHandler) Login(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	c.JSON(200, gin.H{
 		"status": "success",
 		"token": jwt,

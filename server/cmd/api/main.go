@@ -12,8 +12,10 @@ import (
 	"github.com/btalv/Ecommerce/server/internal/repositories"
 	"github.com/btalv/Ecommerce/server/internal/routes"
 	"github.com/btalv/Ecommerce/server/internal/services"
+	"github.com/btalv/Ecommerce/server/internal/workers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golang.org/x/net/context"
 )
 
 
@@ -61,14 +63,24 @@ func main() {
     cartService := services.NewCartService(postgresCartRepository, postgresProductRepository)
     cartHandler := handlers.NewCartHandler(cartService)
 
+    // order constructor
+    postgresOrderRepository := repositories.NewPostgresOrderRepository(db)
+    orderService := services.NewOrderService(postgresOrderRepository)
+    orderHandler := handlers.NewOrderHandler(orderService)
+
+    // worker initiation
+    workerCTX, workerCancel := context.WithCancel(context.Background())
+    defer workerCancel()
+    go workers.OrderExpirationWorker(workerCTX, orderService)
+
     // gin initilaztion
     engine := gin.New()
     engine.Use(gin.Recovery())
-    engine.Use(middlewares.CustomLogger())
+    // engine.Use(middlewares.CustomLogger())
     engine.Use(middlewares.RequestID())
-    // engine.Use(gin.Logger())
+    engine.Use(gin.Logger())
     engine.Use(middlewares.ErrorHandler())
     engine.Use(middlewares.Authentication(jwtManager))
-    routes.RegisterRoutes(engine, productHandler, userHandler, cartHandler, jwtManager)
+    routes.RegisterRoutes(engine, productHandler, userHandler, cartHandler, orderHandler, jwtManager)
     engine.Run() // 0.0.0.0:8080
 }

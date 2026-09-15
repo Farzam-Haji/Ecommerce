@@ -2,16 +2,13 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
-	"github.com/btalv/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
-var ErrInvalidJSON = errors.New("couldnt bind json")
 
 type ProductServiceAPI interface {
 	CreateProduct(context.Context, string, int32, int64, int64) (*models.Product, error)
@@ -36,18 +33,13 @@ func NewProductHandler(serviceInterface ProductServiceAPI) *ProductHandler {
 func (ph *ProductHandler) CreateProduct(c *gin.Context) {
 	var request CreateProductRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -56,6 +48,7 @@ func (ph *ProductHandler) CreateProduct(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	c.JSON(201, gin.H{
 		"status":"created",
 		"newProduct": *newProduct,
@@ -66,7 +59,7 @@ func (ph *ProductHandler) GetProduct(c *gin.Context) {
 	id := c.Param("id")
 	productID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
 		return
 	}
 
@@ -75,11 +68,11 @@ func (ph *ProductHandler) GetProduct(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	c.JSON(200, gin.H{
 		"status": "success",
 		"product": product,
 	})
-
 }
 
 
@@ -89,6 +82,7 @@ func (ph *ProductHandler) GetAllProducts(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	c.JSON(200, gin.H{
 		"status": "success",
 		"products": products,
@@ -100,24 +94,19 @@ func (ph *ProductHandler) UpdateProduct(c *gin.Context) {
 	id := c.Param("id")
 	productID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
 		return
 	}
 
 	var request UpdateProductRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -126,31 +115,29 @@ func (ph *ProductHandler) UpdateProduct(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(200, gin.H{"status": "success"})
+
+	c.JSON(200, gin.H{
+		"status": "success",
+	})
 }
 
 func (ph *ProductHandler) PatchProduct(c *gin.Context) {
 	id := c.Param("id")
 	productID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
 		return
 	}
 
 	var request PatchProductRequest
 	if err = c.ShouldBindJSON(&request); err != nil {
-		c.Error(fmt.Errorf("%w: %v", ErrInvalidJSON, err))
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidJSON, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -159,25 +146,23 @@ func (ph *ProductHandler) PatchProduct(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(200, gin.H{"status": "success"})
+
+	c.JSON(200, gin.H{
+		"status": "success",
+	})
 }
 
 func (ph *ProductHandler) DeleteProduct(c *gin.Context) {
 	id := c.Param("id")
 	productID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		c.JSON(400, gin.H{"error": services.ErrInvalidID.Error()})
+		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
 		return
 	}
 
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -186,18 +171,16 @@ func (ph *ProductHandler) DeleteProduct(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(200, gin.H{"status": "success"})
+
+	c.JSON(200, gin.H{
+		"status": "success",
+	})
 }
 
 func (ph *ProductHandler) GetMyProducts(c *gin.Context) {
-	value, exists := c.Get("userID")
-	if !exists {
-		c.Error(services.ErrInternal)
-		return
-	}
-	userID, ok := value.(int64)
-	if !ok {
-		c.Error(services.ErrInternal)
+	userID, err := getUserID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -206,6 +189,7 @@ func (ph *ProductHandler) GetMyProducts(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	c.JSON(200, gin.H{
 		"status":"success",
 		"products":products,
