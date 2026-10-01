@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/btalv/Ecommerce/server/internal/auth"
+	"github.com/btalv/Ecommerce/server/internal/bank"
 	"github.com/btalv/Ecommerce/server/internal/handlers"
 	"github.com/btalv/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
@@ -119,6 +120,13 @@ func ErrorHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": err.Error()})
 		case errors.Is(err, services.ErrOrderNotFound):
 			c.JSON(404, gin.H{"error": err.Error()})
+		case errors.Is(err, services.ErrNonPending):
+			c.JSON(404, gin.H{"error": err.Error()})
+		
+		//bank
+		case errors.Is(err, bank.ErrRequestBank):
+			log.Println(err)
+			c.JSON(500, gin.H{"error": bank.ErrRequestBank.Error()})
 
 		default:
 			log.Println(err)

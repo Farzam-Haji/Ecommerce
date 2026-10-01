@@ -22,7 +22,7 @@ func NewPostgresOrderRepository(db *sql.DB) *PostgresOrderRepository {
 
 func (or *PostgresOrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*models.Order, error) {
 	query := `
-		SELECT id, user_id, payment, created_at, updated_at, expires_at
+		SELECT id, user_id, payment, created_at, updated_at, expires_at, payment_id, amount
 		FROM orders 
 		WHERE id = $1
 	`
@@ -36,6 +36,8 @@ func (or *PostgresOrderRepository) GetOrderByID(ctx context.Context, orderID int
 		&order.CreatedAt,
 		&order.UpdatedAt,
 		&order.ExpiresAt,
+		&order.PaymentID,
+		&order.Amount,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrRowNotFound
@@ -84,7 +86,7 @@ func (or *PostgresOrderRepository) GetOrderItems(ctx context.Context, orderID in
 
 func (or *PostgresOrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) ([]*models.Order, error) {
 	query := `
-		SELECT id, user_id, payment, created_at, updated_at, expires_at
+		SELECT id, user_id, payment, created_at, updated_at, expires_at, payment_id, amount
 		FROM orders
 		WHERE user_id = $1
 		ORDER BY created_at
@@ -105,6 +107,8 @@ func (or *PostgresOrderRepository) GetOrdersByUserID(ctx context.Context, userID
 			&order.CreatedAt,
 			&order.UpdatedAt,
 			&order.ExpiresAt,
+			&order.PaymentID,
+			&order.Amount,
 		); err != nil {
 			return nil, err
 		}
@@ -213,6 +217,7 @@ func (or *PostgresOrderRepository) CreateOrderByUserID(ctx context.Context, user
 		VALUES ($1, $2, $3, $4, $5)
 	`
 	insufficientItems := make([]string, 0)
+	var orderAmount int64
 
 	for _, cartItem := range cartItems {
 		var orderItem models.OrderItem
@@ -234,15 +239,38 @@ func (or *PostgresOrderRepository) CreateOrderByUserID(ctx context.Context, user
 		if err != nil {
 			return nil, nil, err
 		}
+
+		orderAmount += orderItem.Price * int64(cartItem.Quantity)
 	}
 
 	if len(insufficientItems) > 0 {
 		return nil, insufficientItems, ErrInsufficientInventory
 	}
 
+	//order amount
+	query = `
+		UPDATE orders
+		SET amount = $1
+		WHERE id = $2
+	`
+	result, err := tx.ExecContext(ctx, query, orderAmount, order.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if affected != 1 {
+		return nil, nil, ErrFailUpdate
+	}
+
 	if err = tx.Commit(); err != nil {
 		return nil, nil, err
 	}
+
 	return &order, nil, nil
 }
 
@@ -509,4 +537,188 @@ func (or *PostgresOrderRepository) GetExpiredOrderIDs(ctx context.Context) ([]in
 		return nil, err
 	}
 	return IDs, nil
+}
+
+func (or *PostgresOrderRepository) UpdateOrdersPaymentID(ctx context.Context, orderID int64, paymentID int64) (error) {
+	query := `
+		UPDATE orders
+		SET payment_id = $1
+			WHERE id = $2
+	`
+	result, err := or.db.ExecContext(ctx, query, paymentID, orderID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if affected != 1 {
+		return ErrFailUpdate
+	}
+
+	return nil
+}
+
+func (or *PostgresOrderRepository) GetPendingOrderByUserID(ctx context.Context, userID int64, timePeriod time.Duration) (*models.Order, error) {
+	tx, err := or.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	//get order
+	query := `
+		SELECT id, user_id, payment, created_at, updated_at, expires_at, payment_id, amount
+		FROM orders
+		WHERE user_id = $1
+			AND payment = 'pending'
+
+	`
+	row := tx.QueryRowContext(ctx, query, userID)
+
+	var order models.Order
+	err = row.Scan(
+		&order.ID,
+		&order.UserID,
+		&order.Payment,
+		&order.CreatedAt,
+		&order.UpdatedAt,
+		&order.ExpiresAt,
+		&order.PaymentID,
+		&order.Amount,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrRowNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	//update expires_at
+	query = `
+		UPDATE orders
+		SET expires_at = $1,
+			updated_at = NOW()
+		WHERE id = $2
+			AND payment = 'pending'
+			AND expires_at >= NOW()
+	`
+	expiresAt := time.Now().Add(timePeriod)
+	result, err := tx.ExecContext(ctx, query, expiresAt, order.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if affected != 1 {
+		return nil, ErrFailUpdate
+	}
+
+	order.ExpiresAt = expiresAt
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (or *PostgresOrderRepository) UpdateOrderCancel(ctx context.Context, orderID int64) (error) {
+	tx, err := or.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	//update payment and updated_at
+	query := `
+		UPDATE orders
+		SET payment = 'canceled',
+			updated_at = NOW()
+		WHERE id = $1
+			AND payment = 'pending'
+	`
+	result, err := tx.ExecContext(ctx, query, orderID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return ErrNonPending
+	}
+
+	//get order items
+	query = `
+		SELECT product_id, quantity
+		FROM order_items
+		WHERE order_id = $1
+	`
+	rows, err := tx.QueryContext(ctx, query, orderID)
+	if err != nil {
+		return err
+	}
+
+	items := make([]*models.OrderItem, 0)
+	for rows.Next() {
+		var item models.OrderItem
+		if err = rows.Scan(
+			&item.ProductID, 
+			&item.Quantity,
+		); err != nil {
+			rows.Close()
+			return err
+		}
+
+		if item.ProductID == nil {
+			continue
+		}
+
+		items = append(items, &item)
+	}
+
+	if err = rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	if err = rows.Close(); err != nil {
+		return err
+	}
+
+	//restore inventory
+	query = `
+		UPDATE products
+		SET quantity = quantity + $1
+		WHERE id = $2
+	`
+	for _, item := range items {
+		result, err = tx.ExecContext(ctx, query, item.Quantity, *item.ProductID)
+		if err != nil {
+			return err
+		}
+
+		affected, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if affected != 1 {
+			return ErrProductUnavailable
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }

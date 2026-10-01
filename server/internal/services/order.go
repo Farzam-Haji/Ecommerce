@@ -21,15 +21,24 @@ type OrderRepository interface {
 	ResolveExpiredOrder(ctx context.Context, orderID int64) (error)
 	GetExpiredOrderIDs(ctx context.Context) ([]int64, error)
 	GetOrdersByUserID(ctx context.Context, userID int64) ([]*models.Order, error)
+	UpdateOrdersPaymentID(ctx context.Context, orderID int64, paymentID int64) (error)
+	GetPendingOrderByUserID(ctx context.Context, userID int64, timePeriod time.Duration) (*models.Order, error)
+	UpdateOrderCancel(ctx context.Context, orderID int64) (error)
+}
+
+type BankClient interface {
+	CreatePaymentURL(orderID int64, amount int64) (string, error)
 }
 
 type OrderService struct {
 	orderRepo 	OrderRepository
+	bankClient 	BankClient
 }
 
-func NewOrderService(orderRepoInterface OrderRepository) (*OrderService) {
+func NewOrderService(orderRepoInterface OrderRepository, bankClient BankClient) (*OrderService) {
 	return &OrderService{
 		orderRepo: orderRepoInterface,
+		bankClient: bankClient,
 	}
 }
 
@@ -50,6 +59,17 @@ func (os *OrderService) ExpireOrders(ctx context.Context) (error) {
 }
 
 func (os *OrderService) CreateOrder(ctx context.Context, userID int64) (*models.Order, error) {
+	//order exist
+	order, err := os.orderRepo.GetPendingOrderByUserID(ctx, userID, ExpiresAfter)
+	if err == nil {
+		return order, nil
+	}
+	if !errors.Is(err, repositories.ErrRowNotFound) {
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+
+
+	//new order
 	order, insufficientItems, err := os.orderRepo.CreateOrderByUserID(ctx, userID, ExpiresAfter)
 	switch{
 	case err == nil:
@@ -111,4 +131,72 @@ func (os *OrderService) GetOrderItems(ctx context.Context, orderID int64) ([]*mo
 		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	return items, nil
+}
+
+func (os *OrderService) GetOrderAmount(ctx context.Context, orderID int64) (int64, error) {
+	items, err := os.GetOrderItems(ctx, orderID)
+	if err != nil {
+		return 0, err
+	}
+
+	var amount int64
+	for _, item := range items {
+		amount += int64(item.Quantity) * item.Price
+	}
+	return amount, nil
+}
+
+func (os *OrderService) CreatePayment(ctx context.Context, orderID int64) (string, error) {
+	order, err := os.orderRepo.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return "", err
+	}
+
+	return os.bankClient.CreatePaymentURL(order.ID, order.Amount)
+}
+
+func (os *OrderService) ProcessPayment(ctx context.Context, orderID int64, paymentID int64, status string) (error) {
+	var err error
+
+	if status == "paid" {
+		err = os.ResolvePaidOrder(ctx, orderID)
+	}
+	if status == "failed" {
+		err = os.ResolveFailedOrder(ctx, orderID)
+	}
+	errUpdate := os.orderRepo.UpdateOrdersPaymentID(ctx, orderID, paymentID)
+
+	if err != nil {
+		return err
+	}
+
+	if errUpdate != nil {
+		return errUpdate
+	}
+
+	return nil
+}
+
+func (os *OrderService) CancelUserOrder(ctx context.Context, orderID int64, userID int64) (error) {
+	order, err := os.orderRepo.GetOrderByID(ctx, orderID)
+
+	if errors.Is(err, repositories.ErrRowNotFound) {
+		return ErrOrderNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+
+	if *order.UserID != userID {
+		return ErrUnauthorized
+	}
+
+	err = os.orderRepo.UpdateOrderCancel(ctx, orderID);
+	if errors.Is(err, repositories.ErrNonPending) {
+		return ErrNonPending
+	}
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrInternal, err)
+	}
+	return nil
 }

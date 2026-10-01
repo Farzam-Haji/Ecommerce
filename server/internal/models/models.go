@@ -40,6 +40,8 @@ type Order struct {
 	CreatedAt   time.Time  	`json:"created_at"`
 	UpdatedAt  	time.Time  	`json:"updated_at"`
 	ExpiresAt  	time.Time  	`json:"expires_at"`
+	PaymentID	*int64 		`json:"payment_id"`
+	Amount 		int64 		`json:"amount"`
 }
 
 type OrderItem struct {

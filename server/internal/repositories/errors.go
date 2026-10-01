@@ -4,6 +4,7 @@ import "errors"
 
 var ErrRowNotFound = errors.New("No Matching Row")
 var ErrDuplicateKey = errors.New("Row Already Exist")
+var ErrFailUpdate = errors.New("Couldnt Update The Row")
 
 //transaction
 var ErrCartNotFound = errors.New("Cart Not Found")

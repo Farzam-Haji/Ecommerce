@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/btalv/Ecommerce/server/internal/auth"
+	"github.com/btalv/Ecommerce/server/internal/bank"
 	"github.com/btalv/Ecommerce/server/internal/database"
 	"github.com/btalv/Ecommerce/server/internal/handlers"
 	"github.com/btalv/Ecommerce/server/internal/middlewares"
@@ -48,6 +50,10 @@ func main() {
     // auth constructor
     jwtManager := auth.NewJWTManager(os.Getenv("JWT_SECRET"))
 
+    // bank client constructor
+    client := http.Client{}
+    bankClient := bank.NewBankClient(os.Getenv("BANK_URL"), &client)
+
     // product constructor
     postgresProductRepository := repositories.NewPostgresProductRepository(db)
     productService := services.NewProductService(postgresProductRepository)
@@ -65,8 +71,8 @@ func main() {
 
     // order constructor
     postgresOrderRepository := repositories.NewPostgresOrderRepository(db)
-    orderService := services.NewOrderService(postgresOrderRepository)
-    orderHandler := handlers.NewOrderHandler(orderService)
+    orderService := services.NewOrderService(postgresOrderRepository, bankClient)
+    orderHandler := handlers.NewOrderHandler(orderService, os.Getenv("SERVER"))
 
     // worker initiation
     workerCTX, workerCancel := context.WithCancel(context.Background())
@@ -82,5 +88,5 @@ func main() {
     engine.Use(middlewares.ErrorHandler())
     engine.Use(middlewares.Authentication(jwtManager))
     routes.RegisterRoutes(engine, productHandler, userHandler, cartHandler, orderHandler, jwtManager)
-    engine.Run() // 0.0.0.0:8080
+    engine.Run(os.Getenv("SERVER")) // 0.0.0.0:8080
 }
