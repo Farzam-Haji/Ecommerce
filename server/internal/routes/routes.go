@@ -13,7 +13,7 @@ func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, user
 	v1.GET("/ping", handlers.Ping)
 
 	v1.GET("/products", productHandler.GetAllProducts)
-	v1.POST("/products", middlewares.HeaderCheck(), middlewares.RequireUser(jwtManager) ,productHandler.CreateProduct)
+	v1.POST("/products", middlewares.RequireUser(jwtManager) ,productHandler.CreateProduct)
 	v1.GET("/products/:id", productHandler.GetProduct)
 	v1.PUT("/products/:id", middlewares.RequireUser(jwtManager), productHandler.UpdateProduct)
 	v1.PATCH("/products/:id", middlewares.RequireUser(jwtManager), productHandler.PatchProduct)
@@ -32,4 +32,7 @@ func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, user
 	v1.GET("/orders", middlewares.RequireUser(jwtManager), orderHandler.GetMyOrders)
 	v1.POST("/orders", middlewares.RequireUser(jwtManager), orderHandler.CreateOrder)
 	v1.GET("/orders/:id", middlewares.RequireUser(jwtManager), orderHandler.GetOrder)
+	v1.POST("/orders/result", orderHandler.Result)
+	v1.GET("/orders/:id/result", middlewares.RequireUser(jwtManager), orderHandler.ShowResult)
+	v1.POST("/orders/:id/cancel", middlewares.RequireUser(jwtManager), orderHandler.CancelOrder)
 }

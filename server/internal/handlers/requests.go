@@ -42,3 +42,9 @@ type AddItemRequest struct {
 type UpdateItemQuantityRequest struct {
 	Quantity  	int32  		`json:"quantity" binding:"required,gte=0"`
 }
+
+type PaymentResultRequest struct {
+	PaymentID 		int64 		`json:"payment_id"`
+	OrderID 		int64 		`json:"order_id"`
+	Status 			string 		`json:"status"`
+}

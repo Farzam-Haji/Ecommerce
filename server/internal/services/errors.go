@@ -28,3 +28,5 @@ var ErrItemNotFound = errors.New("item not found")
 //order
 var ErrOrderNotFound = errors.New("Order Not Found")
 var ErrEmptyOrder = errors.New("There Is No Item In the Cart")
+var ErrNonPending = errors.New("Cannot Update The Status of Non Pending Orders")
+
