@@ -74,7 +74,7 @@ func ErrorHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": handlers.ErrInvalidParam.Error()})
 		case errors.Is(err, handlers.ErrMissingUserID):
 			log.Println(err)
-			c.JSON(401, gin.H{"error": handlers.ErrMissingUserID.Error()})
+			c.JSON(500, gin.H{"error": services.ErrInternal.Error()})
 
 		//user
 		case errors.Is(err, services.ErrEmailUnavailable):
@@ -96,8 +96,8 @@ func ErrorHandler() gin.HandlerFunc {
 			c.JSON(400, gin.H{"error": err.Error()})
 		case errors.Is(err, services.ErrInvalidPrice):
 			c.JSON(400, gin.H{"error": err.Error()})
-		case errors.Is(err, services.ErrUnauthorized):
-			c.JSON(401, gin.H{"error": err.Error()})
+		case errors.Is(err, services.ErrForbidden):
+			c.JSON(403, gin.H{"error": err.Error()})
 		case errors.Is(err, services.ErrInternal):
 			log.Println(err)
 			c.JSON(500, gin.H{"error": services.ErrInternal.Error()})

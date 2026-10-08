@@ -37,7 +37,6 @@ func (uh *UserHandler) Register(c *gin.Context) {
 	}
 	
 	c.JSON(201, gin.H{
-		"status": "created",
 		"user": user.Email,
 		"token": jwt,
 	})
@@ -57,7 +56,6 @@ func (uh *UserHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"status": "success",
 		"token": jwt,
 	})
 }

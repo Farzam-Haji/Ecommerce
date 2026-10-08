@@ -37,11 +37,11 @@ type Order struct {
 	ID  		int64  		`json:"id"`
 	UserID  	*int64  	`json:"user_id"`
 	Payment 	string 		`json:"payment"`
-	CreatedAt   time.Time  	`json:"created_at"`
-	UpdatedAt  	time.Time  	`json:"updated_at"`
-	ExpiresAt  	time.Time  	`json:"expires_at"`
 	PaymentID	*int64 		`json:"payment_id"`
 	Amount 		int64 		`json:"amount"`
+	CreatedAt   time.Time  	`json:"created_at"`
+	ExpiresAt  	time.Time  	`json:"expires_at"`
+	UpdatedAt  	time.Time  	`json:"updated_at"`
 }
 
 type OrderItem struct {

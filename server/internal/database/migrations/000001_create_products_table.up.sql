@@ -1,5 +1,0 @@
-CREATE TABLE products (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name TEXT NOT NULL,
-    quantity INT NOT NULL
-);

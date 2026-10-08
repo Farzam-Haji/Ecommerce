@@ -32,7 +32,7 @@ func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, user
 	v1.GET("/orders", middlewares.RequireUser(jwtManager), orderHandler.GetMyOrders)
 	v1.POST("/orders", middlewares.RequireUser(jwtManager), orderHandler.CreateOrder)
 	v1.GET("/orders/:id", middlewares.RequireUser(jwtManager), orderHandler.GetOrder)
-	v1.POST("/orders/result", orderHandler.Result)
-	v1.GET("/orders/:id/result", middlewares.RequireUser(jwtManager), orderHandler.ShowResult)
 	v1.POST("/orders/:id/cancel", middlewares.RequireUser(jwtManager), orderHandler.CancelOrder)
+
+	v1.POST("/orders/result", orderHandler.Result)
 }

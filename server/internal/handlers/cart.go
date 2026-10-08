@@ -14,7 +14,7 @@ import (
 type CartServiceAPI interface {
 	GetUserCartItems(ctx context.Context, userID int64) ([]*models.CartItem, []string, error)
 	AddToCart(ctx context.Context, userID int64, productID int64, pointerQuantity *int32) (*models.CartItem, error)
-	UpdateItemQuantity(ctx context.Context, userID int64, itemID int64, quantity int32) (error)
+	UpdateItemQuantity(ctx context.Context, userID int64, itemID int64, quantity int32) (*models.CartItem, error)
 	DeleteFromCart(ctx context.Context, userID int64, itemID int64) (error)
 	DeleteCart(ctx context.Context, userID int64) (error)
 }
@@ -38,7 +38,9 @@ func (ch *CartHandler) GetMyCartItems(c *gin.Context) {
 
 	items, deleted, err := ch.Service.GetUserCartItems(c.Request.Context(), userID)
 	if errors.Is(err, services.ErrCartNotFound) {
-		c.JSON(200, "your cart is empty")
+		c.JSON(200, gin.H{
+			"items": items,
+		})
 		return
 	}
 	if err != nil {
@@ -78,7 +80,6 @@ func (ch *CartHandler) AddItemToMyCart(c *gin.Context) {
 	}
 
 	c.JSON(201, gin.H{
-		"status": "created",
 		"item": item,
 	})
 }
@@ -103,14 +104,19 @@ func (ch *CartHandler) UpdateMyItemQuantity(c *gin.Context) {
 		return
 	}
 
-	err = ch.Service.UpdateItemQuantity(c.Request.Context(), userID, itemID, request.Quantity)
+	updatedItem, err := ch.Service.UpdateItemQuantity(c.Request.Context(), userID, itemID, *request.Quantity)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
+	if *request.Quantity == 0 {
+		c.Status(204)
+		return
+	}
+	
 	c.JSON(200, gin.H{
-		"status": "success",
+		"item": updatedItem,
 	})
 }
 
@@ -134,9 +140,7 @@ func (ch *CartHandler) DeleteMyItem(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"status": "success",
-	})
+	c.Status(204)
 }
 
 func (ch *CartHandler) DeleteMyCart(c *gin.Context) {
@@ -152,7 +156,5 @@ func (ch *CartHandler) DeleteMyCart(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"status": "success",
-	})
+	c.Status(204)
 }

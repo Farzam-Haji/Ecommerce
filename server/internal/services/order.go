@@ -120,7 +120,7 @@ func (os *OrderService) GetUserOrderByID(ctx context.Context, orderID int64, use
 	}
 
 	if *order.UserID != userID {
-		return nil, ErrUnauthorized
+		return nil, ErrForbidden
 	}
 	return order, nil
 }
@@ -149,7 +149,7 @@ func (os *OrderService) GetOrderAmount(ctx context.Context, orderID int64) (int6
 func (os *OrderService) CreatePayment(ctx context.Context, orderID int64) (string, error) {
 	order, err := os.orderRepo.GetOrderByID(ctx, orderID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	return os.bankClient.CreatePaymentURL(order.ID, order.Amount)
@@ -171,7 +171,7 @@ func (os *OrderService) ProcessPayment(ctx context.Context, orderID int64, payme
 	}
 
 	if errUpdate != nil {
-		return errUpdate
+		return fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	return nil
@@ -188,7 +188,7 @@ func (os *OrderService) CancelUserOrder(ctx context.Context, orderID int64, user
 	}
 
 	if *order.UserID != userID {
-		return ErrUnauthorized
+		return ErrForbidden
 	}
 
 	err = os.orderRepo.UpdateOrderCancel(ctx, orderID);

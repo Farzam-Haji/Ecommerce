@@ -10,8 +10,9 @@ import (
 
 const TokenExpiresAfter = 72 * time.Hour
 
-var ErrInvalidToken = errors.New("Invalid Token")
-var ErrExpiredToken = errors.New("Expired Token")
+var ErrInvalidToken = errors.New("invalid token")
+var ErrExpiredToken = errors.New("token has expired")
+
 
 
 type CustomClaims struct {

@@ -14,7 +14,7 @@ type CartRepository interface {
 	GetByUserID(ctx context.Context, userID int64) (*models.Cart, error)
 	DeleteCart(ctx context.Context, userID int64) (int64, error)
 	AddItem(ctx context.Context, item *models.CartItem) (*models.CartItem, error)
-	GetItem(ctx context.Context, cartID int64, productID int64) (*models.CartItem, error)
+	GetCartItem(ctx context.Context, cartID int64, productID int64) (*models.CartItem, error)
 	GetItemByID(ctx context.Context, itemID int64) (*models.CartItem, error)
 	GetCartItems(ctx context.Context, cartID int64) ([]*models.CartItem, error)
 	UpdateItemQuantity(ctx context.Context, quantity int32, itemID int64) (int64, error)
@@ -74,7 +74,7 @@ func (cs *CartService) DeleteFromCart(ctx context.Context, userID int64, itemID 
 		return err
 	}
 	if cart.ID != item.CartID {
-		return ErrUnauthorized
+		return ErrForbidden
 	}
 
 	affected, err := cs.cartRepo.DeleteItem(ctx, item.ID)
@@ -88,15 +88,16 @@ func (cs *CartService) DeleteFromCart(ctx context.Context, userID int64, itemID 
 }
 
 func (cs *CartService) GetUserCartItems(ctx context.Context, userID int64) ([]*models.CartItem, []string, error) {
+	resultItems := make([]*models.CartItem, 0)
+
 	cart, err := cs.GetUserCart(ctx, userID)
-	if errors.Is(err, repositories.ErrRowNotFound) {
-		return nil, nil, ErrCartNotFound
+	if errors.Is(err, ErrCartNotFound) {
+		return resultItems, nil, ErrCartNotFound
 	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
-	var resultItems []*models.CartItem
 	var deletedItems []string
 	items, err := cs.cartRepo.GetCartItems(ctx, cart.ID)
 	if err != nil {
@@ -164,14 +165,16 @@ func (cs *CartService) AddToCart(ctx context.Context, userID int64, productID in
 		return nil, err
 	}
 
-	item, err := cs.cartRepo.GetItem(ctx, cartID, product.ID)
+	item, err := cs.cartRepo.GetCartItem(ctx, cartID, product.ID)
 	if err != nil && errors.Is(err, repositories.ErrRowNotFound) {
+		subTotal := int64(quantity) * product.Price
 
 		newItem := models.CartItem{
 			CartID: cartID,
 			ProductID: &product.ID,
 			Name: product.Name,
 			Quantity: quantity,
+			Price: &subTotal,
 		}
 
 		item, err = cs.cartRepo.AddItem(ctx, &newItem)
@@ -187,63 +190,66 @@ func (cs *CartService) AddToCart(ctx context.Context, userID int64, productID in
 	}
 
 
-	err = cs.UpdateItemQuantity(ctx, userID, item.ID, item.Quantity+quantity)
+	item, err = cs.UpdateItemQuantity(ctx, userID, item.ID, item.Quantity+quantity)
 	if err != nil {
 		return nil, err
 	}
 
-	item.Quantity = item.Quantity + quantity
 	return item, nil
 }
 
-func (cs *CartService) UpdateItemQuantity(ctx context.Context, userID int64, itemID int64, quantity int32) (error) {
+func (cs *CartService) UpdateItemQuantity(ctx context.Context, userID int64, itemID int64, quantity int32) (*models.CartItem, error) {
 	if itemID <= 0 {
-		return ErrInvalidID
+		return nil, ErrInvalidID
 	}
 	if quantity < 0 {
-		return ErrInvalidQuantity
+		return nil, ErrInvalidQuantity
 	}
 	if quantity == 0 {
-		return cs.DeleteFromCart(ctx, userID, itemID)
+		return nil, cs.DeleteFromCart(ctx, userID, itemID)
 	}
 
 	item, err := cs.cartRepo.GetItemByID(ctx, itemID)
 	if errors.Is(err, repositories.ErrRowNotFound) {
-		return ErrItemNotFound
+		return nil, ErrItemNotFound
 	}
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInternal, err)
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	cart, err := cs.GetUserCart(ctx, userID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	
 	if cart.ID != item.CartID {
-		return ErrUnauthorized
+		return nil, ErrForbidden
 	}
 
 	product, err := cs.productRepo.GetByID(ctx, *item.ProductID)
 	if errors.Is(err, repositories.ErrRowNotFound) {
-		return ErrProductNotFound
+		return nil, ErrProductNotFound
 	}
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInternal, err)
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
 	if product.Quantity < quantity {
-		return ErrInsufficientQuantity
+		return nil, ErrInsufficientQuantity
 	}
 
 	affected, err := cs.cartRepo.UpdateItemQuantity(ctx, quantity, item.ID)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInternal, err)
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	if affected == 0 {
-		return ErrInternal
+		return nil, ErrInternal
 	}
-	return nil
+
+	item.Quantity = quantity
+	subTotal := int64(item.Quantity) * product.Price
+	item.Price = &subTotal
+	return item, nil
 }
 
 
