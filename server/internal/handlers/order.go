@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
-	// "log"
+	"log"
 	"strconv"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
@@ -53,10 +53,9 @@ func (oh *OrderHandler) CreateOrder(c *gin.Context) {
 
 	// c.Redirect(303, paymentURL)
 
-	c.JSON(201, gin.H{
-		"status": "success",
+	c.JSON(200, gin.H{
 		"order": order,
-		"url": paymentURL,
+		"payment_url": paymentURL,
 	})
 }
 
@@ -118,49 +117,22 @@ func (oh *OrderHandler) Result(c *gin.Context) {
 		return
 	}
 
+	log.Printf(
+        "payment result: payment=%d order=%d status=%s",
+        request.PaymentID,
+        request.OrderID,
+        request.Status,
+    )
+
 	err := oh.service.ProcessPayment(c.Request.Context(), request.OrderID, request.PaymentID, request.Status)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	// log.Printf(
-    //     "payment result: payment=%d order=%d status=%s",
-    //     request.PaymentID,
-    //     request.OrderID,
-    //     request.Status,
-    // )
 
-    resultURL := fmt.Sprintf("%s/api/v1/orders/%d/result", oh.serverURL, request.OrderID)
-    c.Redirect(303, resultURL)
 
-	// c.JSON(200, request)
-}
-
-func (oh *OrderHandler) ShowResult(c *gin.Context) {
-	id := c.Param("id")
-	orderID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		c.Error(fmt.Errorf("%w: %w", ErrInvalidParam, err))
-		return
-	}
-
-	userID, err := getUserID(c)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	order, err := oh.service.GetUserOrderByID(c.Request.Context(), orderID, userID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	c.JSON(200, gin.H{
-		"Status": order.Payment,
-		"Payment_id": order.PaymentID,
-	})	
+	c.Status(200)
 }
 
 func (oh *OrderHandler) CancelOrder(c *gin.Context) {
@@ -183,8 +155,5 @@ func (oh *OrderHandler) CancelOrder(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"Status": "Success",
-		"Action": "Order Canceled",
-	})
+	c.Status(200)
 }

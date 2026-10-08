@@ -21,7 +21,7 @@ func NewBankClient(bankURL string, httpClient *http.Client) (*bankClient) {
 	}
 }
 
-var ErrRequestBank = errors.New("Couldn't Contact The Bank")
+var ErrRequestBank = errors.New("failed to create payment session")
 
 type PaymentRequest struct{
 	OrderID 	int64 		`json:"order_id"`

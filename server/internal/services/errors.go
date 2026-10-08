@@ -2,31 +2,31 @@ package services
 
 import "errors"
 
-//general
-var ErrInvalidName = errors.New("invalid name")
-var ErrInvalidQuantity = errors.New("invalid quantity")
+// general
 var ErrInvalidID = errors.New("invalid id")
-var ErrInternal= errors.New("internal server issue")
-var ErrUnauthorized = errors.New("Action Unauthorized")
-var ErrInvalidPrice = errors.New("invalid price")
+var ErrForbidden = errors.New("authenticated user is not allowed to perform this action")
+var ErrInternal = errors.New("internal server error")
 
 // product
+var ErrInvalidName = errors.New("invalid product name")
+var ErrInvalidQuantity = errors.New("invalid quantity")
+var ErrInvalidPrice = errors.New("invalid price")
 var ErrProductNotFound = errors.New("product not found")
-var ErrDuplicateProduct = errors.New("Product Already Exist")
+var ErrDuplicateProduct = errors.New("product already exists")
 
 // user
-var ErrEmailUnavailable = errors.New("Email Already Exists")
+var ErrEmailUnavailable = errors.New("email is already registered")
 var ErrWrongCredential = errors.New("one or both credentials are wrong")
-var ErrInvalidPassword = errors.New("password must contain at least 8 character")
-var ErrTokenGenFailed = errors.New("Failed To Generate Token. Login Again")
+var ErrInvalidPassword = errors.New("password must contain at least 8 characters")
+var ErrTokenGenFailed = errors.New("failed to generate authentication token")
 
-//cart
+// cart
 var ErrCartNotFound = errors.New("cart not found")
-var ErrInsufficientQuantity = errors.New("product is not available in this quantity")
-var ErrItemNotFound = errors.New("item not found")
+var ErrInsufficientQuantity = errors.New("product is not available in the requested quantity")
+var ErrItemNotFound = errors.New("cart item not found")
 
-//order
-var ErrOrderNotFound = errors.New("Order Not Found")
-var ErrEmptyOrder = errors.New("There Is No Item In the Cart")
-var ErrNonPending = errors.New("Cannot Update The Status of Non Pending Orders")
+// order
+var ErrOrderNotFound = errors.New("order not found")
+var ErrEmptyOrder = errors.New("cart is empty")
+var ErrNonPending = errors.New("order is not pending")
 

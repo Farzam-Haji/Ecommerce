@@ -84,21 +84,27 @@ func (ps *ProductService) GetAllProducts(ctx context.Context) ([]*models.Product
 }
 
 
-func (ps *ProductService) UpdateProduct(ctx context.Context, id int64, userID int64, name string, quantity int32, price int64) (error) {
+func (ps *ProductService) UpdateProduct(ctx context.Context, id int64, userID int64, name string, quantity int32, price int64) (*models.Product, error) {
+	if id <=0 {
+		return nil, ErrInvalidID
+	}
 	if name == "" {
-		return ErrInvalidName
+		return nil, ErrInvalidName
 	}
 	if quantity < 0 {
-		return ErrInvalidQuantity
+		return nil, ErrInvalidQuantity
+	}
+	if price < 0 {
+		return nil, ErrInvalidPrice
 	}
 
 	product, err := ps.GetProduct(ctx, id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if product.SellerID != userID {
-		return ErrUnauthorized
+		return nil, ErrForbidden
 	}
 
 	product.Name = name
@@ -107,37 +113,37 @@ func (ps *ProductService) UpdateProduct(ctx context.Context, id int64, userID in
 
 	affected, err := ps.repository.Update(ctx, product)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInternal, err)
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	if affected == 0 {
-		return fmt.Errorf("%w: unable to update product %v", ErrInternal, product.Name)
+		return nil, fmt.Errorf("%w: unable to update product %v", ErrInternal, product.Name)
 	}
 
-	return nil
+	return product, nil
 }
 
-func (ps *ProductService) PatchProduct(ctx context.Context, id int64, userID int64, name *string, quantity *int32, price *int64) (error) {
+func (ps *ProductService) PatchProduct(ctx context.Context, id int64, userID int64, name *string, quantity *int32, price *int64) (*models.Product, error) {
 	if id <= 0 {
-		return ErrInvalidID
+		return nil, ErrInvalidID
 	}
 
 	product, err := ps.GetProduct(ctx, id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if product.SellerID != userID {
-		return ErrUnauthorized
+		return nil, ErrForbidden
 	}
 
 	if name != nil && *name == "" {
-		return ErrInvalidName
+		return nil, ErrInvalidName
 	}
 	if quantity != nil && *quantity < 0 {
-		return ErrInvalidQuantity
+		return nil, ErrInvalidQuantity
 	}
 	if price != nil && *price < 0 {
-		return ErrInvalidPrice
+		return nil, ErrInvalidPrice
 	}
 
 	if name != nil {
@@ -152,13 +158,13 @@ func (ps *ProductService) PatchProduct(ctx context.Context, id int64, userID int
 
 	affected, err := ps.repository.Update(ctx, product)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInternal, err)
+		return nil, fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 	if affected == 0 {
-		return fmt.Errorf("%w: unable to update product %v", ErrInternal, product.Name)
+		return nil, fmt.Errorf("%w: unable to update product %v", ErrInternal, product.Name)
 	}
 
-	return nil
+	return product, nil
 }
 
 func (ps *ProductService) DeleteProduct(ctx context.Context, id int64, userID int64) (error) {
@@ -172,7 +178,7 @@ func (ps *ProductService) DeleteProduct(ctx context.Context, id int64, userID in
 	}
 
 	if product.SellerID != userID {
-		return ErrUnauthorized
+		return ErrForbidden
 	}
 
 	affected, err := ps.repository.Delete(ctx, id, userID)
@@ -188,7 +194,7 @@ func (ps *ProductService) DeleteProduct(ctx context.Context, id int64, userID in
 
 func (ps *ProductService) GetUserProducts(ctx context.Context, userID int64) ([]*models.Product, error){
 	if userID <= 0 {
-		return nil, ErrUnauthorized
+		return nil, ErrForbidden
 	}
 
 	products, err := ps.repository.GetBySellerID(ctx, userID)

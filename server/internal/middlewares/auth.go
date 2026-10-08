@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var ErrUnauthorized = errors.New("access unauthorized")
+var ErrUnauthorized = errors.New("authentication required")
 
 func Authentication(jwtManager	*auth.JWTManager) gin.HandlerFunc {
 	return	func(c *gin.Context) {

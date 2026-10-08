@@ -22,7 +22,7 @@ func NewPostgresOrderRepository(db *sql.DB) *PostgresOrderRepository {
 
 func (or *PostgresOrderRepository) GetOrderByID(ctx context.Context, orderID int64) (*models.Order, error) {
 	query := `
-		SELECT id, user_id, payment, created_at, updated_at, expires_at, payment_id, amount
+		SELECT id, user_id, payment, payment_id, amount, created_at, expires_at, updated_at 
 		FROM orders 
 		WHERE id = $1
 	`
@@ -33,11 +33,11 @@ func (or *PostgresOrderRepository) GetOrderByID(ctx context.Context, orderID int
 		&order.ID,
 		&order.UserID,
 		&order.Payment,
-		&order.CreatedAt,
-		&order.UpdatedAt,
-		&order.ExpiresAt,
 		&order.PaymentID,
 		&order.Amount,
+		&order.CreatedAt,
+		&order.ExpiresAt,
+		&order.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrRowNotFound
@@ -86,7 +86,7 @@ func (or *PostgresOrderRepository) GetOrderItems(ctx context.Context, orderID in
 
 func (or *PostgresOrderRepository) GetOrdersByUserID(ctx context.Context, userID int64) ([]*models.Order, error) {
 	query := `
-		SELECT id, user_id, payment, created_at, updated_at, expires_at, payment_id, amount
+		SELECT id, user_id, payment, payment_id, amount, created_at, expires_at, updated_at
 		FROM orders
 		WHERE user_id = $1
 		ORDER BY created_at
@@ -101,14 +101,14 @@ func (or *PostgresOrderRepository) GetOrdersByUserID(ctx context.Context, userID
 	for rows.Next() {
 		var order models.Order
 		if err = rows.Scan(
-			&order.ID, 
+			&order.ID,
 			&order.UserID,
 			&order.Payment,
-			&order.CreatedAt,
-			&order.UpdatedAt,
-			&order.ExpiresAt,
 			&order.PaymentID,
 			&order.Amount,
+			&order.CreatedAt,
+			&order.ExpiresAt,
+			&order.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -187,7 +187,7 @@ func (or *PostgresOrderRepository) CreateOrderByUserID(ctx context.Context, user
 	query = `
 		INSERT INTO orders(user_id, expires_at) 
 		VALUES ($1, $2) 
-		RETURNING id, user_id, payment, created_at, updated_at, expires_at
+		RETURNING id, user_id, payment, created_at, expires_at, updated_at
 	`
 	expiresAt := time.Now().Add(timePeriod)
 	row = tx.QueryRowContext(ctx, query, userID, expiresAt)
@@ -198,8 +198,8 @@ func (or *PostgresOrderRepository) CreateOrderByUserID(ctx context.Context, user
 		&order.UserID,
 		&order.Payment,
 		&order.CreatedAt,
-		&order.UpdatedAt,
 		&order.ExpiresAt,
+		&order.UpdatedAt,	
 	); err != nil {
 		return nil, nil, err
 	}
@@ -252,25 +252,7 @@ func (or *PostgresOrderRepository) CreateOrderByUserID(ctx context.Context, user
 		UPDATE orders
 		SET amount = $1
 		WHERE id = $2
-	`
-	result, err := tx.ExecContext(ctx, query, orderAmount, order.ID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if affected != 1 {
-		return nil, nil, ErrFailUpdate
-	}
-
-	if err = tx.Commit(); err != nil {
-		return nil, nil, err
-	}
-
+	`ay
 	return &order, nil, nil
 }
 
@@ -571,7 +553,7 @@ func (or *PostgresOrderRepository) GetPendingOrderByUserID(ctx context.Context, 
 
 	//get order
 	query := `
-		SELECT id, user_id, payment, created_at, updated_at, expires_at, payment_id, amount
+		SELECT id, user_id, payment, payment_id, amount, created_at, expires_at, updated_at
 		FROM orders
 		WHERE user_id = $1
 			AND payment = 'pending'
@@ -584,11 +566,11 @@ func (or *PostgresOrderRepository) GetPendingOrderByUserID(ctx context.Context, 
 		&order.ID,
 		&order.UserID,
 		&order.Payment,
-		&order.CreatedAt,
-		&order.UpdatedAt,
-		&order.ExpiresAt,
 		&order.PaymentID,
 		&order.Amount,
+		&order.CreatedAt,
+		&order.ExpiresAt,
+		&order.UpdatedAt,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {

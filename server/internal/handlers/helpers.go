@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ErrInvalidJSON = errors.New("Couldnt Bind Request")
-	ErrMissingUserID = errors.New("User ID Not In Context")
-	ErrInvalidParam = errors.New("Param is Invalid")
+	ErrInvalidJSON = errors.New("invalid request body")
+	ErrInvalidParam = errors.New("invalid path parameter")
+	ErrMissingUserID = errors.New("user id not in context")
 )
 
 

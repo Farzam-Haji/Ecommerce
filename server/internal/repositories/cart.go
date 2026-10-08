@@ -98,7 +98,7 @@ func (cr *PostgresCartRepository) AddItem(ctx context.Context, item *models.Cart
 	return item, nil
 }
 
-func (cr *PostgresCartRepository) GetItem(ctx context.Context, cartID int64, productID int64) (*models.CartItem, error) {
+func (cr *PostgresCartRepository) GetCartItem(ctx context.Context, cartID int64, productID int64) (*models.CartItem, error) {
 	row := cr.db.QueryRowContext(ctx, "SELECT id, cart_id, product_id, name, quantity FROM cart_items WHERE cart_id = $1 AND product_id = $2",
 		cartID, productID,
 	)

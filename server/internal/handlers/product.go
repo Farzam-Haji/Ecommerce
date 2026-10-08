@@ -14,8 +14,8 @@ type ProductServiceAPI interface {
 	CreateProduct(context.Context, string, int32, int64, int64) (*models.Product, error)
 	GetProduct(context.Context, int64) (*models.Product, error)
 	GetAllProducts(context.Context) ([]*models.Product, error)
-	UpdateProduct(context.Context, int64, int64, string, int32, int64) 	(error)
-	PatchProduct(context.Context, int64, int64, *string, *int32, *int64) (error)
+	UpdateProduct(context.Context, int64, int64, string, int32, int64) 	(*models.Product, error)
+	PatchProduct(context.Context, int64, int64, *string, *int32, *int64) (*models.Product, error)
 	DeleteProduct(context.Context, int64, int64)	(error)	
 	GetUserProducts(context.Context, int64) ([]*models.Product, error)
 }
@@ -43,15 +43,14 @@ func (ph *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	newProduct, err := ph.Service.CreateProduct(c.Request.Context(), request.Name, request.Quantity, userID, request.Price)
+	newProduct, err := ph.Service.CreateProduct(c.Request.Context(), request.Name, *request.Quantity, userID, *request.Price)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	c.JSON(201, gin.H{
-		"status":"created",
-		"newProduct": *newProduct,
+		"product": newProduct,
 	})
 }
 
@@ -70,7 +69,6 @@ func (ph *ProductHandler) GetProduct(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"status": "success",
 		"product": product,
 	})
 }
@@ -84,7 +82,6 @@ func (ph *ProductHandler) GetAllProducts(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"status": "success",
 		"products": products,
 	})
 }
@@ -110,14 +107,14 @@ func (ph *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	err = ph.Service.UpdateProduct(c.Request.Context(), productID, userID, request.Name, request.Quantity, request.Price)
+	updatedProduct, err := ph.Service.UpdateProduct(c.Request.Context(), productID, userID, request.Name, *request.Quantity, *request.Price)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	c.JSON(200, gin.H{
-		"status": "success",
+		"product": updatedProduct,
 	})
 }
 
@@ -141,14 +138,14 @@ func (ph *ProductHandler) PatchProduct(c *gin.Context) {
 		return
 	}
 
-	err = ph.Service.PatchProduct(c.Request.Context(), productID, userID, request.Name, request.Quantity, request.Price)
+	updatedProduct, err := ph.Service.PatchProduct(c.Request.Context(), productID, userID, request.Name, request.Quantity, request.Price)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	c.JSON(200, gin.H{
-		"status": "success",
+		"product": updatedProduct,
 	})
 }
 
@@ -172,9 +169,7 @@ func (ph *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"status": "success",
-	})
+	c.Status(204)
 }
 
 func (ph *ProductHandler) GetMyProducts(c *gin.Context) {
@@ -191,7 +186,6 @@ func (ph *ProductHandler) GetMyProducts(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"status":"success",
 		"products":products,
 	})
 }
