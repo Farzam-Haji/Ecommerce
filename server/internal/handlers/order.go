@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
+	// "log"
 	"strconv"
 
 	"github.com/btalv/Ecommerce/server/internal/models"
@@ -117,12 +117,12 @@ func (oh *OrderHandler) Result(c *gin.Context) {
 		return
 	}
 
-	log.Printf(
-        "payment result: payment=%d order=%d status=%s",
-        request.PaymentID,
-        request.OrderID,
-        request.Status,
-    )
+	// log.Printf(
+    //     "payment result: payment=%d order=%d status=%s",
+    //     request.PaymentID,
+    //     request.OrderID,
+    //     request.Status,
+    // )
 
 	err := oh.service.ProcessPayment(c.Request.Context(), request.OrderID, request.PaymentID, request.Status)
 	if err != nil {

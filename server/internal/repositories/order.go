@@ -252,7 +252,27 @@ func (or *PostgresOrderRepository) CreateOrderByUserID(ctx context.Context, user
 		UPDATE orders
 		SET amount = $1
 		WHERE id = $2
-	`ay
+	`
+	result, err := tx.ExecContext(ctx, query, orderAmount, order.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if affected != 1 {
+		return nil, nil, ErrFailUpdate
+	}
+
+	order.Amount = orderAmount
+
+	if err = tx.Commit(); err != nil {
+		return nil, nil, err
+	}
+
 	return &order, nil, nil
 }
 
