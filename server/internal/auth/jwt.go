@@ -17,6 +17,7 @@ var ErrExpiredToken = errors.New("token has expired")
 
 type CustomClaims struct {
 	UserID 		int64
+	Email  		string
 	jwt.RegisteredClaims
 }
 
@@ -30,9 +31,10 @@ func NewJWTManager(secret string) *JWTManager {
 	}
 }
 
-func (m *JWTManager) GenerateToken(userID int64) (string, error) {
+func (m *JWTManager) GenerateToken(userID int64, email string) (string, error) {
 	claim := CustomClaims{
 		UserID: userID,
+		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(
 				time.Now().Add(TokenExpiresAfter),

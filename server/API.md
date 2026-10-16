@@ -205,6 +205,36 @@ Clone and run the mock bank server before testing order payment functionality. M
 
 
 
+### GET /me
+- Returns the current authentication state and, if authenticated, the user's email.
+
+>#### Authentication
+- Not required.
+
+>#### Request
+- No Request body.
+
+>#### Responses
+- **200 OK** - `json body:`
+```json
+{
+    "authenticated": true,
+    "user": "user@example.com"
+}
+```
+- `authenticated`: Boolean indicating whether the request has a valid JWT.
+- `user`: Present only when authenticated is true; contains the authenticated user's email.
+
+- When the request is unauthenticated, the response is:
+```json
+{
+    "authenticated": false
+}
+```
+
+
+
+
 -------------------------------
 ## Product Endpoints
 
@@ -844,26 +874,3 @@ After creating an order, the client should redirect the user to `payment_url`.
 If the user chooses to leave the payment flow without completing payment, the client may cancel the pending order using `POST /orders/:id/cancel`.
 Canceling an order releases its reserved product quantities. The canceled order remains in the user's order history with a canceled payment status.
 This flow keeps order and cart synced, and avoid unsync expiration period between bank and api.
-
-
-<!-- fixed everything else, except these two. I send the markdown I wrote, change or correct the structure if needed.
-
-I add these two right bellow Database Setup
-
->### Start Server
-
-The API server starts at the address configured by SERVER in .env.
-To run the server from project root:
-```bash
-go run cmd/api/main.go
-```
-
-
->### Bank Server
-
-For orders payment to work, bank server needs to be running and listening at the same time.
-I made a mock bank project that can be used for this purpose. it can be cloned from this address:
-```https
-https://github.com/Farzam-Haji/mock-bank
-``` 
-should I rename to DTO?-->

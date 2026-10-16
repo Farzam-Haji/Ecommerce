@@ -62,7 +62,7 @@ func (us *UserService) Register(ctx context.Context, email string, password stri
 		return nil, "", fmt.Errorf("%w: %w", ErrInternal, err)
 	}
 
-	token, err := us.authentication.GenerateToken(newUser.ID)
+	token, err := us.authentication.GenerateToken(newUser.ID, newUser.Email)
 	if err != nil {
 		return nil, "", fmt.Errorf("%w: %w", ErrTokenGenFailed, err)
 	}
@@ -83,7 +83,7 @@ func (us *UserService) Login(ctx context.Context, email string, password string)
 		return "", ErrWrongCredential
 	}
 	
-	token, err := us.authentication.GenerateToken(user.ID)
+	token, err := us.authentication.GenerateToken(user.ID, email)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrTokenGenFailed, err)
 	}

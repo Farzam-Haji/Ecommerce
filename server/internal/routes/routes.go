@@ -22,6 +22,7 @@ func RegisterRoutes(r *gin.Engine, productHandler *handlers.ProductHandler, user
 
 	v1.POST("/register", userHandler.Register)
 	v1.POST("/login", userHandler.Login)
+	v1.GET("/me", middlewares.Authentication(jwtManager), userHandler.Me)
 
 	v1.GET("/cart", middlewares.RequireUser(jwtManager), cartHandler.GetMyCartItems)
 	v1.DELETE("/cart", middlewares.RequireUser(jwtManager), cartHandler.DeleteMyCart)

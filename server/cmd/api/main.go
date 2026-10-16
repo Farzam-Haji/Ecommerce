@@ -86,7 +86,7 @@ func main() {
     engine.Use(middlewares.RequestID())
     engine.Use(gin.Logger())
     engine.Use(middlewares.ErrorHandler())
-    engine.Use(middlewares.Authentication(jwtManager))
+    // engine.Use(middlewares.Authentication(jwtManager))
     routes.RegisterRoutes(engine, productHandler, userHandler, cartHandler, orderHandler, jwtManager)
     engine.Run(os.Getenv("SERVER")) // 0.0.0.0:8080
 }

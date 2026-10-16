@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/btalv/Ecommerce/server/internal/auth"
 	"github.com/btalv/Ecommerce/server/internal/models"
 	"github.com/gin-gonic/gin"
 )
@@ -57,5 +58,28 @@ func (uh *UserHandler) Login(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"token": jwt,
+	})
+}
+
+func (uh *UserHandler) Me(c *gin.Context) {
+	value, exists := c.Get("claims")
+	if !exists {
+		c.JSON(200, gin.H{
+			"authenticated": false,
+		})
+		return
+	}
+
+	claims, ok := value.(*auth.CustomClaims)
+	if !ok || claims == nil {
+		c.JSON(200, gin.H{
+			"authenticated": false,
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"authenticated": true,
+		"user": claims.Email,
 	})
 }
