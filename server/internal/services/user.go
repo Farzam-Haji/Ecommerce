@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/btalv/Ecommerce/server/internal/auth"
-	"github.com/btalv/Ecommerce/server/internal/models"
-	"github.com/btalv/Ecommerce/server/internal/repositories"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/auth"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/models"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/repositories"
 	"golang.org/x/crypto/bcrypt"
 )
 

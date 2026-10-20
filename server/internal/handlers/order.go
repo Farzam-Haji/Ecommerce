@@ -6,7 +6,7 @@ import (
 	// "log"
 	"strconv"
 
-	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/models"
 	"github.com/gin-gonic/gin"
 )
 

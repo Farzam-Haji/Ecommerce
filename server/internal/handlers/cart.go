@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/btalv/Ecommerce/server/internal/models"
-	"github.com/btalv/Ecommerce/server/internal/services"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/models"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
 )
 

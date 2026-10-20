@@ -1,4 +1,4 @@
-module github.com/btalv/Ecommerce/server
+module github.com/Farzam-Haji/Ecommerce/server
 
 go 1.25.5
 
@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.41.0
+	golang.org/x/net v0.43.0
 )
 
 require (
@@ -38,7 +39,6 @@ require (
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.29.0 // indirect

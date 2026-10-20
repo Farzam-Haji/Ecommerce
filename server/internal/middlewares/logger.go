@@ -7,10 +7,10 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/btalv/Ecommerce/server/internal/auth"
-	"github.com/btalv/Ecommerce/server/internal/bank"
-	"github.com/btalv/Ecommerce/server/internal/handlers"
-	"github.com/btalv/Ecommerce/server/internal/services"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/auth"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/bank"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/handlers"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/services"
 	"github.com/gin-gonic/gin"
 )
 

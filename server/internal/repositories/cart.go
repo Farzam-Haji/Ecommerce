@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 

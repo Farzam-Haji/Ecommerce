@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/models"
 )
 
 type PostgresOrderRepository struct {
