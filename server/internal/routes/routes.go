@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"github.com/btalv/Ecommerce/server/internal/auth"
-	"github.com/btalv/Ecommerce/server/internal/handlers"
-	"github.com/btalv/Ecommerce/server/internal/middlewares"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/auth"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/handlers"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/middlewares"
 	"github.com/gin-gonic/gin"
 )
 

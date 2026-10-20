@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/btalv/Ecommerce/server/internal/auth"
-	"github.com/btalv/Ecommerce/server/internal/models"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/auth"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/models"
 	"github.com/gin-gonic/gin"
 )
 

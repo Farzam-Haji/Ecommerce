@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/btalv/Ecommerce/server/internal/auth"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/auth"
 	"github.com/gin-gonic/gin"
 )
 

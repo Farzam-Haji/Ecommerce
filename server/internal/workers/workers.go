@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/btalv/Ecommerce/server/internal/services"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/services"
 )
 
 const ExpireWorkerTicker = 30 * time.Second
