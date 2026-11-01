@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Product Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+      crossorigin="anonymous">
+    <script src="/static/js/htmx.min.js" defer></script>
+</head>
+<body>
+    {{ template "navbar" . }}
+
+    <main class="container py-4">
+        {{ range . }}
+            <h2>
+                <a href="/products/{{ .ID }}">{{ .Name }}</a>
+            </h2>
+
+            {{ if gt .Quantity 0 }}
+                <h3>Stock: {{ .Quantity }}</h3>
+            {{ else }}
+                <h3>Out of stock</h3>
+            {{ end }}
+
+            <h3>Price: {{ formatPrice .Price }}</h3>
+
+            <button class="btn btn-outline-primary"
+            hx-get="/products/{{ .ID }}/preview"
+            hx-target="#preview-{{ .ID }}"
+            hx-swap="innerHTML">
+                Quick Preview
+            </button>
+
+            <div id="preview-{{ .ID }}"></div>
+        {{ else }}
+            <h1>No Product Found</h1>
+        {{ end }}
+    </main>
+
+    {{ template "footer" . }}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"
+        defer></script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"text/template"
 
 	"github.com/Farzam-Haji/Ecommerce/server/internal/auth"
 	"github.com/Farzam-Haji/Ecommerce/server/internal/bank"
@@ -14,6 +15,7 @@ import (
 	"github.com/Farzam-Haji/Ecommerce/server/internal/repositories"
 	"github.com/Farzam-Haji/Ecommerce/server/internal/routes"
 	"github.com/Farzam-Haji/Ecommerce/server/internal/services"
+	"github.com/Farzam-Haji/Ecommerce/server/internal/web"
 	"github.com/Farzam-Haji/Ecommerce/server/internal/workers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -79,14 +81,28 @@ func main() {
     defer workerCancel()
     go workers.OrderExpirationWorker(workerCTX, orderService)
 
+    // web init
+    productWebHandler := web.NewProductWebHandler(productService) 
+
     // gin initilaztion
     engine := gin.New()
+
     engine.Use(gin.Recovery())
-    // engine.Use(middlewares.CustomLogger())
     engine.Use(middlewares.RequestID())
     engine.Use(gin.Logger())
     engine.Use(middlewares.ErrorHandler())
-    // engine.Use(middlewares.Authentication(jwtManager))
+
+    engine.Static("/static", "./static")
+
+    engine.SetFuncMap(template.FuncMap{
+        "formatPrice": func(price int64) string {
+            return fmt.Sprintf("$ %.2f", float64(price)/100)
+        },
+    })
+        
+    engine.LoadHTMLGlob("templates/*")
+
     routes.RegisterRoutes(engine, productHandler, userHandler, cartHandler, orderHandler, jwtManager)
+    routes.RegisterWebRoutes(engine, productWebHandler)
     engine.Run(os.Getenv("SERVER")) // 0.0.0.0:8080
 }

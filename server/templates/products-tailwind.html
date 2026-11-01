@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Products | My Store</title>
+    <link href="/static/css/tailwind.css" rel="stylesheet">
+    <script src="/static/js/theme.js" defer></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+
+    {{ template "navbar-tailwind" . }}
+
+    <main class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+                Products
+            </h1>
+            <p class="mt-2 text-slate-600">
+                Browse our available products.
+            </p>
+        </div>
+
+        {{ range . }}
+            <article class="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-semibold">
+                    <a href="/products/{{ .ID }}"
+                       class="hover:text-blue-700">
+                        {{ .Name }}
+                    </a>
+                </h2>
+
+                <p class="mt-3 text-lg font-medium">
+                    {{ formatPrice .Price }}
+                </p>
+
+                <div class="mt-3">
+                    {{ if gt .Quantity 0 }}
+                        <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
+                            In stock: {{ .Quantity }}
+                        </span>
+                    {{ else }}
+                        <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800">
+                            Out of stock
+                        </span>
+                    {{ end }}
+                </div>
+
+                <button type="button"
+                        class="mt-4 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700 focus:outline-2 focus:outline-offset-2 focus:outline-blue-600"
+                        hx-get="/tailwind/products/{{ .ID }}/preview"
+                        hx-target="#preview-{{ .ID }}"
+                        hx-swap="innerHTML">
+                    Quick preview
+                </button>
+
+                <div id="preview-{{ .ID }}" class="mt-3"></div>
+            </article>
+        {{ else }}
+            <p class="rounded-lg border border-slate-200 bg-white p-6 text-slate-600">
+                No products found.
+            </p>
+        {{ end }}
+    </main>
+
+    {{ template "footer-tailwind" . }}
+
+    <script src="/static/js/htmx.min.js" defer></script>
+</body>
+</html>
