@@ -1,0 +1,16 @@
+<div class="card mt-3 mb-3">
+    <div class="card-body">
+        <h5 class="card-title">{{ .Name }}</h5>
+        <p>Price: {{ formatPrice .Price }}</p>
+        <p>Merchant ID: {{ .SellerID }}</p>
+        {{ if gt .Quantity 0 }}
+            <p>In Stock: {{ .Quantity }}</p>
+        {{ else }}
+            <p>Out of stock</p>
+        {{ end }}
+
+        <a href="/products/{{ .ID }}">
+        View Full Detail
+        </a>
+    </div>
+</div>

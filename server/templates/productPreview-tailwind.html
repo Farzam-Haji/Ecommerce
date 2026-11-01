@@ -1,0 +1,28 @@
+<div class="preview-panel rounded-lg border border-blue-200 bg-blue-50 p-5">
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h3 class="text-lg font-semibold">
+                {{ .Name }}
+            </h3>
+
+            <p class="mt-2 text-slate-700">
+                Price: {{ formatPrice .Price }}
+            </p>
+
+            <p class="mt-1 text-slate-700">
+                Stock: {{ .Quantity }}
+            </p>
+
+            <a href="/products/{{ .ID }}"
+               class="mt-4 inline-block font-medium text-blue-700 hover:text-blue-900">
+                View full details
+            </a>
+        </div>
+
+        <button type="button"
+                class="rounded-md px-3 py-1 text-sm text-slate-600 hover:bg-blue-100 hover:text-slate-900"
+                onclick="this.closest('.preview-panel').remove()">
+            Close
+        </button>
+    </div>
+</div>
